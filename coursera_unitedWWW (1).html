@@ -1,0 +1,2476 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coursera Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ─────────────────────────────────────────────
+   TOKENS
+───────────────────────────────────────────── */
+:root {
+  --bg:       #f5f5f7;
+  --bg2:      #ffffff;
+  --surface:  #ffffff;
+  --surface2: #f5f5f7;
+  --divide:   rgba(0,0,0,0.08);
+  --divide2:  rgba(0,0,0,0.14);
+  --text:     #1d1d1f;
+  --text2:    #3d3d3f;
+  --muted:    #6e6e73;
+  --muted2:   #aeaeb2;
+  --blue:     #0071e3;
+  --blue-l:   rgba(0,113,227,0.09);
+  --blue-t:   rgba(0,113,227,0.14);
+  --green:    #1d8348;
+  --green-l:  rgba(29,131,72,0.08);
+  --red:      #c0392b;
+  --red-l:    rgba(192,57,43,0.08);
+  --orange:   #d35400;
+  --orange-l: rgba(211,84,0,0.08);
+  --purple:   #7d3c98;
+  --purple-l: rgba(125,60,152,0.08);
+  --sky:      #0e6db5;
+  --sh:       0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --sh2:      0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+  --sh3:      0 20px 60px rgba(0,0,0,0.14), 0 4px 16px rgba(0,0,0,0.06);
+  --r:        14px;
+  --r2:       10px;
+  --r3:       8px;
+}
+[data-theme="dark"] {
+  --bg:       #000000;
+  --bg2:      #1c1c1e;
+  --surface:  #1c1c1e;
+  --surface2: #2c2c2e;
+  --divide:   rgba(255,255,255,0.10);
+  --divide2:  rgba(255,255,255,0.18);
+  --text:     #f5f5f7;
+  --text2:    #c7c7cc;
+  --muted:    #8e8e93;
+  --muted2:   #48484a;
+  --blue:     #3a9cf5;
+  --blue-l:   rgba(58,156,245,0.12);
+  --blue-t:   rgba(58,156,245,0.18);
+  --green:    #30d158;
+  --green-l:  rgba(48,209,88,0.10);
+  --red:      #ff453a;
+  --red-l:    rgba(255,69,58,0.10);
+  --orange:   #ff9f0a;
+  --orange-l: rgba(255,159,10,0.10);
+  --purple:   #bf5af2;
+  --purple-l: rgba(191,90,242,0.10);
+  --sky:      #64d2ff;
+  --sh:       0 2px 12px rgba(0,0,0,0.40);
+  --sh2:      0 8px 32px rgba(0,0,0,0.50);
+  --sh3:      0 20px 60px rgba(0,0,0,0.60);
+}
+
+/* ─────────────────────────────────────────────
+   BASE
+───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+::-webkit-scrollbar { width: 4px; height: 4px }
+::-webkit-scrollbar-track { background: transparent }
+::-webkit-scrollbar-thumb { background: var(--divide2); border-radius: 99px }
+
+/* ─────────────────────────────────────────────
+   HEADER
+───────────────────────────────────────────── */
+header {
+  position: sticky; top: 0; z-index: 200;
+  height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem;
+  background: rgba(245,245,247,0.82);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-bottom: 1px solid var(--divide);
+  transition: background .3s;
+}
+[data-theme="dark"] header {
+  background: rgba(0,0,0,0.72);
+}
+.logo {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.02em;
+  color: var(--text);
+}
+.logo-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--blue);
+}
+.hdr-right { display: flex; align-items: center; gap: 8px }
+
+/* Theme toggle */
+.theme-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: none;
+  background: var(--surface2);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  color: var(--muted); transition: background .15s, color .15s;
+}
+.theme-btn:hover { background: var(--divide2); color: var(--text) }
+.theme-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round }
+.icon-moon { display: block } .icon-sun { display: none }
+[data-theme="dark"] .icon-moon { display: none }
+[data-theme="dark"] .icon-sun { display: block }
+
+/* ─────────────────────────────────────────────
+   LAYOUT
+───────────────────────────────────────────── */
+main { max-width: 1240px; margin: 0 auto; padding: 2.5rem 2rem 5rem }
+
+/* ─────────────────────────────────────────────
+   MODE SCREEN
+───────────────────────────────────────────── */
+.mode-eyebrow {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--blue);
+  margin-bottom: .75rem;
+}
+.mode-heading {
+  font-size: 38px; font-weight: 700; letter-spacing: -0.04em;
+  line-height: 1.1; color: var(--text);
+  margin-bottom: .75rem;
+}
+.mode-sub {
+  font-size: 16px; color: var(--muted); max-width: 480px;
+  line-height: 1.6; margin-bottom: 3rem;
+}
+.mode-cards {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin-bottom: 2rem;
+}
+.mode-card {
+  background: var(--surface);
+  border: 1px solid var(--divide);
+  border-radius: var(--r);
+  padding: 2rem 1.75rem;
+  cursor: pointer; text-align: left;
+  transition: box-shadow .2s, transform .2s, border-color .2s;
+  box-shadow: var(--sh);
+}
+.mode-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sh2);
+  border-color: var(--blue);
+}
+.mode-card.active { border-color: var(--blue); box-shadow: var(--sh2), 0 0 0 3px var(--blue-t) }
+.mc-emoji { font-size: 2.2rem; margin-bottom: 1.25rem; display: block; line-height: 1 }
+.mc-title { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; color: var(--text); margin-bottom: 6px }
+.mc-desc { font-size: 13px; color: var(--muted); line-height: 1.55 }
+
+/* Upload zone */
+.upload-zone {
+  background: var(--surface); border: 1.5px dashed var(--divide2);
+  border-radius: var(--r); padding: 3rem 2rem;
+  text-align: center; cursor: pointer;
+  transition: border-color .2s, background .2s;
+  display: none;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--blue); background: var(--blue-l);
+}
+.upload-zone input { display: none }
+.uz-icon {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: var(--surface2);
+  border: 1px solid var(--divide);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 1rem;
+  transition: background .2s;
+}
+.upload-zone:hover .uz-icon, .upload-zone.drag-over .uz-icon { background: var(--blue-l) }
+.upload-zone h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.02em }
+.upload-zone p { font-size: 13px; color: var(--muted) }
+.uz-hint {
+  display: inline-block; margin-top: 14px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--blue); background: var(--blue-l);
+  padding: 4px 12px; border-radius: 99px;
+}
+
+/* ─────────────────────────────────────────────
+   DASHBOARD
+───────────────────────────────────────────── */
+.dashboard { display: none }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+.dashboard.visible { display: block; animation: fadeUp .28s ease }
+
+/* Dash header */
+.dash-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 2rem; flex-wrap: wrap; gap: 16px;
+}
+.dash-breadcrumb {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--muted); margin-bottom: 6px;
+}
+.dash-breadcrumb a { color: var(--blue); cursor: pointer; text-decoration: none; font-weight: 500 }
+.dash-breadcrumb a:hover { text-decoration: underline }
+.dash-breadcrumb .sep { opacity: .4 }
+.dash-title {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.04em;
+  color: var(--text); margin-bottom: 8px; line-height: 1.2;
+}
+.dash-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap }
+.meta-pill {
+  font-size: 11px; font-weight: 500; padding: 3px 10px;
+  border-radius: 99px; border: 1px solid var(--divide2);
+  background: var(--surface2); color: var(--muted);
+}
+.meta-pill.mode-s { background: var(--blue-l); color: var(--blue); border-color: transparent }
+.meta-pill.mode-f { background: var(--green-l); color: var(--green); border-color: transparent }
+
+.dash-actions { display: flex; gap: 8px; align-items: center }
+.back-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--surface); border: 1px solid var(--divide2);
+  padding: 8px 14px; border-radius: var(--r3); font-size: 13px;
+  cursor: pointer; color: var(--text2); font-family: inherit;
+  font-weight: 500; transition: all .14s; box-shadow: var(--sh);
+}
+.back-btn:hover { background: var(--surface2); color: var(--text) }
+
+/* Export button */
+.export-wrap { position: relative }
+.exp-group { display: flex; border-radius: var(--r3); overflow: hidden; box-shadow: 0 2px 8px rgba(0,113,227,.22) }
+.export-btn {
+  background: var(--blue); color: #fff; border: none;
+  padding: 9px 18px; font-size: 13px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: inherit; font-weight: 600;
+  transition: opacity .15s, transform .15s;
+}
+.export-btn:hover { opacity: .9; transform: translateY(-1px) }
+.export-btn:active { transform: translateY(0); opacity: 1 }
+.export-btn.loading { opacity: .6; pointer-events: none }
+.export-btn-arrow { padding: 9px 11px; border-left: 1px solid rgba(255,255,255,.22); gap: 0 }
+.export-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: var(--surface); border: 1px solid var(--divide);
+  border-radius: var(--r); min-width: 300px;
+  box-shadow: var(--sh3); z-index: 400; display: none; overflow: hidden;
+}
+.export-dropdown.open { display: block; animation: fadeUp .16s ease }
+.exp-dd-hdr {
+  padding: 10px 14px; background: var(--surface2);
+  border-bottom: 1px solid var(--divide);
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .1em;
+}
+.export-option {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; cursor: pointer;
+  transition: background .1s; border-bottom: 1px solid var(--divide);
+}
+.export-option:last-child { border-bottom: none }
+.export-option:hover { background: var(--surface2) }
+.export-option.students-only { display: none }
+.eo-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0 }
+.eo-icon.full { background: var(--blue-l) }
+.eo-icon.none { background: var(--red-l) }
+.eo-icon.inv  { background: var(--green-l) }
+.eo-text { flex: 1 }
+.eo-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px }
+.eo-desc  { font-size: 11px; color: var(--muted); line-height: 1.4 }
+.eo-count { font-weight: 700; font-size: 13px; color: var(--blue); flex-shrink: 0 }
+
+/* ─────────────────────────────────────────────
+   KPI CARDS
+───────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px; margin-bottom: 2rem;
+}
+.stat-card {
+  background: var(--surface);
+  border-radius: var(--r2);
+  padding: 1.1rem 1.2rem 1rem;
+  box-shadow: var(--sh);
+  border: 1px solid var(--divide);
+  transition: transform .15s, box-shadow .15s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--sh2) }
+.s-label {
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px;
+}
+.s-value {
+  font-size: 28px; font-weight: 700; letter-spacing: -0.04em;
+  line-height: 1; color: var(--text);
+}
+.s-indigo .s-value { color: var(--blue) }
+.s-green  .s-value { color: var(--green) }
+.s-red    .s-value { color: var(--red) }
+.s-orange .s-value { color: var(--orange) }
+.s-purple .s-value { color: var(--purple) }
+.s-sky .s-value { color: var(--sky) }
+.s-sub {
+  font-size: 10.5px; color: var(--muted2); margin-top: 6px; font-weight: 400;
+}
+
+@keyframes countUp { from { opacity: 0; transform: translateY(5px) } to { opacity: 1; transform: translateY(0) } }
+.s-value.animating { animation: countUp .35s ease }
+
+/* ─────────────────────────────────────────────
+   SECTIONS & CHARTS
+───────────────────────────────────────────── */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--divide);
+  border-radius: var(--r);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--sh);
+}
+.section-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem }
+.section-title { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.01em }
+.section-badge { font-size: 11px; font-weight: 500; color: var(--muted); background: var(--surface2); padding: 2px 10px; border-radius: 99px; border: 1px solid var(--divide) }
+
+.charts-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem }
+
+/* ─────────────────────────────────────────────
+   INSIGHTS
+───────────────────────────────────────────── */
+.insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px }
+.insight-card {
+  border-radius: var(--r2); padding: .9rem;
+  display: flex; align-items: flex-start; gap: 10px;
+  border: 1px solid transparent;
+}
+.ic-blue   { background: var(--blue-l);   border-color: rgba(0,113,227,0.12) }
+.ic-red    { background: var(--red-l);    border-color: rgba(192,57,43,0.10) }
+.ic-green  { background: var(--green-l);  border-color: rgba(29,131,72,0.10) }
+.ic-orange { background: var(--orange-l); border-color: rgba(211,84,0,0.10) }
+.i-icon    { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px }
+.i-title   { font-size: 12px; font-weight: 600; margin-bottom: 2px; color: var(--text) }
+.i-desc    { font-size: 11px; color: var(--muted); line-height: 1.5 }
+
+/* ring */
+.ring-svg { flex-shrink: 0 }
+.ring-track { fill: none; stroke: var(--divide2); stroke-width: 5 }
+.ring-fill  { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dasharray .9s ease }
+
+/* ─────────────────────────────────────────────
+   TOP LIST
+───────────────────────────────────────────── */
+.top-list { display: flex; flex-direction: column; gap: 6px }
+.top-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 11px; background: var(--surface2);
+  border-radius: var(--r2); border: 1px solid var(--divide);
+  transition: border-color .14s, background .14s;
+}
+.top-item:hover { border-color: var(--blue); background: var(--blue-l) }
+.t-rank { font-weight: 700; font-size: 12px; color: var(--muted2); min-width: 20px; text-align: center }
+.t-rank.gold   { color: #c8971e }
+.t-rank.silver { color: #8e8e93 }
+.t-rank.bronze { color: #a0522d }
+.t-av {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--text); color: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+}
+.t-info { flex: 1; min-width: 0 }
+.t-name  { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.t-email { font-size: 11px; color: var(--muted) }
+.t-score { font-weight: 700; font-size: 13px; color: var(--green); min-width: 38px; text-align: right }
+
+/* ─────────────────────────────────────────────
+   TABLE
+───────────────────────────────────────────── */
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: .85rem }
+.chip {
+  padding: 5px 14px; border-radius: 99px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--divide2); background: var(--surface2);
+  color: var(--muted); cursor: pointer; transition: all .13s;
+  font-family: inherit;
+}
+.chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-l) }
+.chip.chip-active { background: var(--blue); border-color: var(--blue); color: #fff }
+.chip.chip-inv { border-color: rgba(0,113,227,.2); color: var(--sky) }
+.chip.chip-inv.chip-active { background: var(--sky); border-color: var(--sky); color: #000 }
+
+.filter-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 1rem;
+}
+.filter-bar input, .filter-bar select {
+  padding: 8px 12px;
+  border: 1px solid var(--divide2);
+  border-radius: var(--r3); font-size: 13px;
+  background: var(--surface); color: var(--text);
+  outline: none; font-family: inherit; font-weight: 400;
+  transition: border-color .14s, box-shadow .14s;
+  box-shadow: var(--sh);
+}
+.filter-bar input:focus, .filter-bar select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-t);
+}
+.filter-bar input { flex: 1; min-width: 200px }
+.filter-bar select { min-width: 140px }
+
+.rpp-select {
+  padding: 5px 10px; border: 1px solid var(--divide2);
+  border-radius: var(--r3); background: var(--surface);
+  color: var(--muted); font-size: 12px; font-family: inherit;
+  cursor: pointer; outline: none; transition: border-color .14s;
+}
+.rpp-select:hover { border-color: var(--blue); color: var(--blue) }
+
+.table-wrap { overflow-x: auto; border-radius: var(--r2); border: 1px solid var(--divide) }
+table { width: 100%; border-collapse: collapse; font-size: 13px }
+thead { background: var(--surface2); }
+thead tr { border-bottom: 1px solid var(--divide2) }
+th {
+  padding: 10px 14px; font-weight: 600; color: var(--muted);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  white-space: nowrap; text-align: left;
+}
+th.sortable { cursor: pointer; user-select: none }
+th.sortable:hover { color: var(--blue) }
+th.sort-asc::after  { content: ' ↑'; color: var(--blue) }
+th.sort-desc::after { content: ' ↓'; color: var(--blue) }
+td { padding: 11px 14px; border-bottom: 1px solid var(--divide); color: var(--text2); vertical-align: middle }
+tbody tr:last-child td { border-bottom: none }
+tbody tr:hover td { background: var(--surface2) }
+
+mark { background: #fef08a; color: var(--text); border-radius: 2px; padding: 0 1px }
+[data-theme="dark"] mark { background: rgba(254,240,138,0.25); color: var(--text) }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 5px; font-size: 10.5px; font-weight: 600 }
+.badge::before { content: ''; width: 5px; height: 5px; border-radius: 50% }
+.badge-green { background: var(--green-l); color: var(--green) } .badge-green::before { background: var(--green) }
+.badge-blue  { background: var(--blue-l);  color: var(--blue)  } .badge-blue::before  { background: var(--blue) }
+.badge-gray  { background: var(--surface2); color: var(--muted) } .badge-gray::before { background: var(--muted2) }
+
+.prog-wrap { height: 3px; background: var(--divide); border-radius: 99px; overflow: hidden; margin-top: 4px }
+.prog-bar  { height: 100%; border-radius: 99px; transition: width .4s }
+
+/* ─────────────────────────────────────────────
+   COPY DROPDOWN
+───────────────────────────────────────────── */
+.copy-wrap { position: relative }
+.copy-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--divide2);
+  padding: 5px 12px; border-radius: var(--r3); font-size: 11.5px;
+  cursor: pointer; color: var(--text2); font-family: inherit;
+  font-weight: 500; transition: all .13s; box-shadow: var(--sh);
+}
+.copy-btn:hover { background: var(--blue-l); border-color: var(--blue); color: var(--blue) }
+.copy-btn.copied { background: var(--green-l); border-color: var(--green); color: var(--green) }
+.copy-group { display: flex }
+.copy-btn-main  { border-radius: var(--r3) 0 0 var(--r3) }
+.copy-btn-arrow { border-radius: 0 var(--r3) var(--r3) 0; padding: 5px 9px; border-left-color: var(--divide2); gap: 0; margin-left: -1px }
+.copy-dd {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--surface); border: 1px solid var(--divide);
+  border-radius: var(--r2); min-width: 220px;
+  box-shadow: var(--sh3); z-index: 500; display: none; overflow: hidden;
+}
+.copy-dd.open { display: block; animation: fadeUp .14s ease }
+.copy-dd-hdr { padding: 8px 12px; font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; background: var(--surface2); border-bottom: 1px solid var(--divide) }
+.copy-opt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer; transition: background .11s;
+  border-bottom: 1px solid var(--divide); font-size: 13px; font-weight: 500; color: var(--text2);
+}
+.copy-opt:last-child { border-bottom: none }
+.copy-opt:hover { background: var(--surface2) }
+.copy-opt-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: .9rem; flex-shrink: 0 }
+.coi-name  { background: var(--purple-l) }
+.coi-email { background: var(--blue-l) }
+.coi-both  { background: var(--green-l) }
+.copy-opt-sub { font-size: 10.5px; color: var(--muted); font-weight: 400; margin-top: 1px }
+
+/* ─────────────────────────────────────────────
+   PAGINATION
+───────────────────────────────────────────── */
+.pager { display: flex; align-items: center; justify-content: space-between; margin-top: 1.1rem; gap: 8px }
+.pager-info { font-size: 12px; color: var(--muted) }
+.pager-btns { display: flex; gap: 4px }
+.pager button {
+  padding: 5px 11px; border: 1px solid var(--divide);
+  border-radius: var(--r3); background: var(--surface);
+  cursor: pointer; font-size: 12px; color: var(--text2);
+  font-family: inherit; font-weight: 500; transition: all .12s;
+}
+.pager button:hover { border-color: var(--blue); background: var(--blue-l); color: var(--blue) }
+.pager button:disabled { opacity: .3; cursor: not-allowed }
+.pager button.active { background: var(--blue); border-color: var(--blue); color: #fff }
+
+/* ─────────────────────────────────────────────
+   EMPTY
+───────────────────────────────────────────── */
+.empty { text-align: center; padding: 3rem 2rem; color: var(--muted) }
+.empty-icon { font-size: 2.5rem; margin-bottom: .75rem }
+.empty p { font-size: 13px }
+
+/* ─────────────────────────────────────────────
+   TOAST
+───────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999;
+  background: var(--text); color: var(--bg); font-size: 13px; font-weight: 500;
+  padding: .7rem 1.1rem; border-radius: var(--r2);
+  box-shadow: var(--sh3); display: flex; align-items: center; gap: 8px;
+  transform: translateY(70px); opacity: 0;
+  transition: all .28s cubic-bezier(.34,1.56,.64,1); pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1 }
+.toast.success .t-dot { background: var(--green) }
+.toast.error   .t-dot { background: var(--red) }
+.t-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted2); flex-shrink: 0 }
+
+/* ─────────────────────────────────────────────
+   SPINNER
+───────────────────────────────────────────── */
+.spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite }
+@keyframes spin { to { transform: rotate(360deg) } }
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────── */
+@media(max-width:1100px){ .stats-grid{ grid-template-columns:repeat(4,1fr) } }
+@media(max-width:900px){
+  .stats-grid{ grid-template-columns:repeat(3,1fr) }
+  .charts-2{ grid-template-columns:1fr }
+  .mode-cards{ grid-template-columns:1fr }
+}
+@media(max-width:600px){
+  main{ padding:1.25rem }
+  .stats-grid{ grid-template-columns:1fr 1fr }
+  .mode-heading{ font-size:28px }
+  .dash-header{ flex-direction:column }
+  .dash-actions{ width:100% }
+}
+
+/* ── MAPPING UPLOAD ──────────────────────────────── */
+.map-upload-wrap {
+  margin-top: 12px;
+  border: 1.5px dashed var(--divide2);
+  border-radius: var(--r2);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: border-color .18s, background .18s;
+  background: var(--surface2);
+}
+.map-upload-wrap:hover { border-color: var(--blue); background: var(--blue-l); }
+.map-upload-wrap.loaded { border-color: var(--green); background: var(--green-l); border-style: solid; }
+.map-icon { font-size: 22px; flex-shrink: 0; }
+.map-text h3 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.map-text p  { font-size: 12px; color: var(--muted); }
+.map-status  { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.map-status.ok { color: var(--green); }
+.inst-badge { display:inline-block; font-size:11px; font-weight:500; padding:2px 8px;
+  border-radius:99px; background:var(--blue-l); color:var(--blue); white-space:nowrap;
+  max-width:160px; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
+.prog-badge { display:inline-block; font-size:11px; font-weight:500; padding:2px 8px;
+  border-radius:99px; background:var(--purple-l); color:var(--purple); white-space:nowrap;
+  max-width:200px; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
+.inst-section { margin-top:1.2rem; }
+
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Coursera Analytics
+  </div>
+  <div class="hdr-right">
+    <button class="theme-btn" onclick="toggleTheme()" title="Переключить тему">
+      <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      <svg class="icon-sun"  viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+<!-- MODE SCREEN -->
+<div id="modeScreen">
+  <div class="mode-eyebrow">Образовательная аналитика</div>
+  <h1 class="mode-heading">Анализ прогресса<br>на Coursera</h1>
+  <p class="mode-sub">Загрузите экспорт из Coursera Enterprise и получите полный отчёт с визуализацией данных</p>
+
+  <div class="mode-cards">
+    <button class="mode-card" id="btnStudents" onclick="selectMode('students')">
+      <span class="mc-emoji">🎓</span>
+      <div class="mc-title">Студенты</div>
+      <div class="mc-desc">Прогресс прохождения курсов, активность, рейтинги и детальный список по каждому студенту</div>
+    </button>
+    <button class="mode-card" id="btnFaculty" onclick="selectMode('faculty')">
+      <span class="mc-emoji">👨‍🏫</span>
+      <div class="mc-title">ППС — Преподаватели</div>
+      <div class="mc-desc">Активность профессорско-преподавательского состава, часы обучения и вовлечённость</div>
+    </button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px" id="uploadCards">
+    <div class="upload-zone" id="uploadZone" style="display:none;grid-column:1/-1">
+      <input type="file" id="fileInput" accept=".csv">
+      <div class="uz-icon">📂</div>
+      <h2 id="uploadTitle">Загрузите CSV-файл</h2>
+      <p>Нажмите или перетащите файл сюда</p>
+      <span class="uz-hint">CourseActivity или ProgramActivity *.csv</span>
+    </div>
+    <div class="upload-card-box" id="csvCardBox" onclick="document.getElementById('fileInput').click()" style="border:1.5px dashed var(--divide2);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);display:none">
+      <input type="file" id="fileInput2" accept=".csv" style="display:none">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);background:var(--blue-l);padding:2px 10px;border-radius:99px;display:inline-block;margin-bottom:12px">CSV · Основной</div>
+      <div style="font-size:32px;margin-bottom:10px">📄</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">CourseActivity или ProgramActivity</div>
+      <div style="font-size:12px;color:var(--muted)">CourseraEnterpriseExport_*.csv</div>
+      <div id="csvCardName" style="display:none;margin-top:10px;font-size:11px;font-weight:600;color:var(--green)"></div>
+    </div>
+    <div class="map-upload-wrap" id="mapUploadWrap" onclick="document.getElementById('mapInput').click()" title="Загрузите Excel/CSV с колонками: Email, Институт, Образовательная программа" style="display:none;align-items:center">
+      <input type="file" id="mapInput" accept=".xlsx,.xls,.csv" style="display:none">
+      <div class="map-icon">🗂️</div>
+      <div class="map-text">
+        <h3>Файл с Институтами и ОП <span style="color:var(--muted);font-weight:400">(необязательно)</span></h3>
+        <p>Опционально: перезаписывает данные из CSV по email</p>
+      </div>
+      <div class="map-status" id="mapStatus">Не загружен</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+
+  <div class="dash-header">
+    <div>
+      <div class="dash-breadcrumb">
+        <a onclick="resetDashboard()">Главная</a>
+        <span class="sep">›</span>
+        <span id="breadMode">Отчёт</span>
+      </div>
+      <div class="dash-title" id="reportTitle"></div>
+      <div class="dash-meta" id="dashMeta"></div>
+    </div>
+
+    <div class="dash-actions">
+      <div class="export-wrap" id="exportWrap">
+        <div class="exp-group">
+          <button class="export-btn export-btn-main" id="exportMainBtn">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2v8M5 7l3 3 3-3M3 13h10"/></svg>
+            <span id="exportBtnText">Экспорт Excel</span>
+          </button>
+          <button class="export-btn export-btn-arrow" id="exportArrowBtn">
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 4l4 4 4-4"/></svg>
+          </button>
+        </div>
+        <div class="export-dropdown" id="exportDropdown">
+          <div class="exp-dd-hdr">Тип выгрузки</div>
+          <div class="export-option" onclick="runExport('full')">
+            <div class="eo-icon full">📊</div>
+            <div class="eo-text">
+              <div class="eo-title">Полный отчёт</div>
+              <div class="eo-desc">Все участники — статистика и список</div>
+            </div>
+            <div class="eo-count" id="cnt-full">—</div>
+          </div>
+          <div class="export-option" onclick="runExport('none')">
+            <div class="eo-icon none">⚠️</div>
+            <div class="eo-text">
+              <div class="eo-title">Без прогресса</div>
+              <div class="eo-desc">Нулевой прогресс, активные участники</div>
+            </div>
+            <div class="eo-count" id="cnt-none">—</div>
+          </div>
+          <div class="export-option students-only" id="opt-invited" onclick="runExport('invited')">
+            <div class="eo-icon inv">📩</div>
+            <div class="eo-text">
+              <div class="eo-title">Приглашены, не присоединились</div>
+              <div class="eo-desc">Статус INVITED — аккаунт не активирован</div>
+            </div>
+            <div class="eo-count" id="cnt-invited">—</div>
+          </div>
+          <div class="export-option students-only" id="opt-by-institute" onclick="runExport('by_institute')">
+            <div class="eo-icon" style="background:var(--orange-l)">🏛️</div>
+            <div class="eo-text">
+              <div class="eo-title">По институтам — не присоединились</div>
+              <div class="eo-desc">Каждый институт = отдельный лист Excel</div>
+            </div>
+            <div class="eo-count" id="cnt-by-institute">—</div>
+          </div>
+          <div class="export-option students-only" id="opt-institute-report" onclick="runExport('institute_report')">
+            <div class="eo-icon" style="background:var(--red-l)">📈</div>
+            <div class="eo-text">
+              <div class="eo-title">Сводный отчёт по институтам</div>
+              <div class="eo-desc">Группировка по ОП, цвет по кол-ву (1 лист)</div>
+            </div>
+            <div class="eo-count" id="cnt-institute-report">—</div>
+          </div>
+          <div class="export-option students-only" id="opt-institute-full" onclick="runExport('institute_full')">
+            <div class="eo-icon" style="background:var(--purple-l)">📦</div>
+            <div class="eo-text">
+              <div class="eo-title">Полный отчёт по институтам</div>
+              <div class="eo-desc">Сводка + список студентов на каждый институт (всё в 1 файле)</div>
+            </div>
+            <div class="eo-count" id="cnt-institute-full">—</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="back-btn" onclick="resetDashboard()">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 2L4 7l5 5"/></svg>
+        Назад
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- Charts row 1 -->
+  <div class="charts-2">
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Завершение курсов</div></div>
+      <div style="position:relative;height:210px"><canvas id="completionChart"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Статус участников</div></div>
+      <div style="position:relative;height:210px"><canvas id="stateChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Charts row 2 -->
+  <div class="charts-2">
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Распределение по пройденным курсам</div></div>
+      <div style="position:relative;height:210px"><canvas id="histChart"></canvas></div>
+    </div>
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Топ-10 по часам обучения</div></div>
+      <div style="position:relative;height:210px"><canvas id="hoursChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Insights + Top -->
+  <div class="charts-2">
+    <div class="section">
+      <div class="section-hdr"><div class="section-title">Ключевые выводы</div></div>
+      <div class="insight-grid" id="insightGrid"></div>
+    </div>
+    <div class="section">
+      <div class="section-hdr">
+        <div class="section-title">Топ-5 по пройденным курсам</div>
+        <div class="section-badge" id="topCount"></div>
+      </div>
+      <div class="top-list" id="topList"></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="section">
+    <div class="section-hdr">
+      <div class="section-title" id="tableTitle">Список</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="section-badge" id="filteredCount"></div>
+        <select class="rpp-select" id="rppSelect" onchange="changeRpp(this.value)">
+          <option value="25">25 / стр.</option>
+          <option value="50" selected>50 / стр.</option>
+          <option value="100">100 / стр.</option>
+          <option value="9999">Все</option>
+        </select>
+        <div class="copy-wrap" id="copyWrap">
+          <div class="copy-group">
+            <button class="copy-btn copy-btn-main" id="copyMainBtn" onclick="copyData('email')">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="5" width="9" height="9" rx="2"/><path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1"/></svg>
+              Скопировать
+            </button>
+            <button class="copy-btn copy-btn-arrow" onclick="toggleCopyDd(event)">
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 4l4 4 4-4"/></svg>
+            </button>
+          </div>
+          <div class="copy-dd" id="copyDd">
+            <div class="copy-dd-hdr">Что скопировать</div>
+            <div class="copy-opt" onclick="copyData('name');closeCopyDd()">
+              <div class="copy-opt-icon coi-name">✏️</div>
+              <div><div>Только имена</div><div class="copy-opt-sub">ФИО каждого — с новой строки</div></div>
+            </div>
+            <div class="copy-opt" onclick="copyData('email');closeCopyDd()">
+              <div class="copy-opt-icon coi-email">📧</div>
+              <div><div>Только email</div><div class="copy-opt-sub">Для рассылки напоминаний</div></div>
+            </div>
+            <div class="copy-opt" onclick="copyData('both');closeCopyDd()">
+              <div class="copy-opt-icon coi-both">📋</div>
+              <div><div>Имя + Email</div><div class="copy-opt-sub">Через табуляцию, по строке</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chip-row" id="chipRow">
+      <button class="chip chip-active" data-q="all"    onclick="quickFilter(this,'all')">Все</button>
+      <button class="chip"             data-q="none"   onclick="quickFilter(this,'none')">⚠️ Без прогресса</button>
+      <button class="chip"             data-q="some"   onclick="quickFilter(this,'some')">✅ Прошли курс</button>
+      <button class="chip"             data-q="many"   onclick="quickFilter(this,'many')">⭐ 5+ курсов</button>
+      <button class="chip chip-inv" id="chipInvited"   data-q="invited" onclick="quickFilter(this,'invited')" style="display:none">📩 Приглашённые</button>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="Поиск по имени или email... (/)">
+      <select id="stateFilter">
+        <option value="">Все статусы</option>
+        <option value="MEMBER">Активные</option>
+        <option value="INVITED">Приглашённые</option>
+        <option value="DELETED_MEMBER">Удалённые</option>
+      </select>
+      <select id="instituteFilter"><option value="">Все институты</option></select>
+      <select id="completedFilter">
+        <option value="">Фильтр по прогрессу</option>
+        <option value="none">Не прошли ни одного</option>
+        <option value="some">Прошли хотя бы 1</option>
+        <option value="many">Прошли 5+</option>
+      </select>
+      <select id="sortSelect">
+        <option value="">Сортировка</option>
+        <option value="completed_desc">↓ По пройденным курсам</option>
+        <option value="completed_asc">↑ По пройденным курсам</option>
+        <option value="hours_desc">↓ По часам</option>
+        <option value="name_asc">↑ По имени</option>
+      </select>
+    </div>
+
+    <div class="table-wrap">
+      <table id="mainTable">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="pagination"></div>
+  </div>
+
+
+  <!-- ДЕТАЛЬНЫЕ КУРСЫ (только CourseActivity) -->
+  <div class="section" id="courseDetailSection" style="display:none;margin-top:1.25rem">
+    <div class="section-hdr">
+      <div class="section-title">Детальные записи курсов</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-badge" id="courseDetailCount">0 записей</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.85rem" id="courseDetailChips">
+      <button class="chip chip-active" onclick="setCourseFilter('all',this)">Все</button>
+      <button class="chip" onclick="setCourseFilter('yes',this)">✓ Пройдены</button>
+      <button class="chip" onclick="setCourseFilter('no',this)">⏳ В процессе</button>
+    </div>
+    <div class="filter-bar" style="margin-bottom:.75rem">
+      <input type="text" id="courseDetailSearch" placeholder="Поиск по имени или курсу..." oninput="renderCourseDetail()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Имя</th><th>Курс</th><th>Прогресс</th><th>Статус</th><th>Часов</th><th>Оценка</th>
+        </tr></thead>
+        <tbody id="courseDetailBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /dashboard -->
+</main>
+
+<div class="toast" id="toast"><span class="t-dot"></span><span id="toastMsg"></span></div>
+
+<script>
+const ROWS_PER_PAGE_DEFAULT=50;
+let ROWS_PER_PAGE=50;
+let allData=[],filtered=[],page=1,charts={},currentMode='',programName='';
+let mappingData={},hasMappingLoaded=false;
+
+// ── THEME ───────────────────────────────────────────────────────────────────
+function applyTheme(dark){
+  document.documentElement.setAttribute('data-theme',dark?'dark':'');
+  localStorage.setItem('ca-theme',dark?'dark':'light');
+  if(Object.keys(charts).length){
+    Chart.defaults.color=dark?'#8e8e93':'#6e6e73';
+    Object.values(charts).forEach(c=>{try{c.update('none')}catch{}});
+  }
+}
+function toggleTheme(){
+  applyTheme(document.documentElement.getAttribute('data-theme')!=='dark');
+}
+(()=>{ if(localStorage.getItem('ca-theme')==='dark') applyTheme(true); })();
+
+// ── ROWS PER PAGE ────────────────────────────────────────────────────────────
+function changeRpp(v){ ROWS_PER_PAGE=parseInt(v)||50; page=1; renderTable(); }
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast'),m=document.getElementById('toastMsg');
+  t.className='toast '+type; m.textContent=msg; t.classList.add('show');
+  clearTimeout(t._timer); t._timer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function buildFilename(suffix){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  return`${p(d.getDate())}.${p(d.getMonth()+1)}. ${p(d.getHours())}.${p(d.getMinutes())} ${suffix}`;
+}
+function formatDate(s){
+  if(!s||s==='')return'—';
+  try{return new Date(s).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})}catch{return s}
+}
+function formatDatePlain(s){
+  if(!s||s==='')return'';
+  try{return new Date(s).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'})}catch{return s}
+}
+function stateBadge(s){
+  if(s==='MEMBER')return`<span class="badge badge-green">Активный</span>`;
+  if(s==='INVITED')return`<span class="badge badge-blue">Приглашён</span>`;
+  if(s==='DELETED_MEMBER')return`<span class="badge badge-gray">Удалён</span>`;
+  return`<span class="badge badge-gray">${s||'—'}</span>`;
+}
+function initials(name){
+  if(!name)return'?';
+  const p=name.trim().split(/\s+/);
+  return((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase();
+}
+
+// ── COPY ──────────────────────────────────────────────────────────────────
+const COPY_ICON=`<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="5" width="9" height="9" rx="2"/><path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1"/></svg>`;
+const CHECK_ICON=`<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 8l4 4 6-7"/></svg>`;
+function copyData(type){
+  if(!filtered.length){showToast('Нет записей','error');return;}
+  let text='',label='',count=filtered.length;
+  if(type==='name'){text=filtered.map(r=>r.name).filter(Boolean).join('\n');label='имён';}
+  else if(type==='email'){text=filtered.map(r=>r.email).filter(Boolean).join('\n');label='email';}
+  else{text=filtered.map(r=>`${r.name||''}\t${r.email||''}`).join('\n');label='строк';}
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('copyMainBtn');
+    btn.classList.add('copied');
+    btn.innerHTML=`${CHECK_ICON} Скопировано (${count})`;
+    showToast(`Скопировано ${count} ${label}`,'success');
+    setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=`${COPY_ICON} Скопировать`;},2500);
+  }).catch(()=>showToast('Не удалось скопировать','error'));
+}
+function toggleCopyDd(e){e.stopPropagation();document.getElementById('copyDd').classList.toggle('open')}
+function closeCopyDd(){document.getElementById('copyDd').classList.remove('open')}
+document.addEventListener('click',closeCopyDd);
+document.getElementById('copyDd').addEventListener('click',e=>e.stopPropagation());
+
+// ── KEYBOARD ──────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  const inp=document.getElementById('searchInput');
+  if(!inp)return;
+  if(e.key==='/'&&document.activeElement!==inp&&document.getElementById('dashboard').style.display!=='none'){
+    e.preventDefault();inp.focus();inp.select();
+  }
+  if(e.key==='Escape'&&document.activeElement===inp){inp.value='';inp.blur();applyFilters();}
+});
+
+// ── CHIPS ─────────────────────────────────────────────────────────────────
+let activeChip='all';
+function quickFilter(el,q){
+  activeChip=q;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('chip-active'));
+  el.classList.add('chip-active');
+  const cf=document.getElementById('completedFilter'),sf=document.getElementById('stateFilter');
+  if(q==='all'){cf.value='';sf.value='';}
+  else if(q==='none'){cf.value='none';sf.value=currentFileType==='courseActivity'?'':'MEMBER';}
+  else if(q==='some'){cf.value='some';sf.value='';}
+  else if(q==='many'){cf.value='many';sf.value='';}
+  else if(q==='invited'){cf.value='';sf.value='INVITED';}
+  applyFilters();
+}
+
+// ── ANIMATE ───────────────────────────────────────────────────────────────
+function animateValue(el,target){
+  const dur=600,start=performance.now();
+  el.classList.add('animating');
+  const tick=now=>{
+    const p=Math.min((now-start)/dur,1),e=1-Math.pow(1-p,3);
+    el.textContent=Math.round(e*target);
+    if(p<1)requestAnimationFrame(tick);
+    else{el.textContent=target;el.classList.remove('animating');}
+  };
+  requestAnimationFrame(tick);
+}
+
+// ── HIGHLIGHT ─────────────────────────────────────────────────────────────
+function highlight(text,query){
+  if(!query||!text)return text||'';
+  const safe=query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return text.replace(new RegExp(`(${safe})`,'gi'),'<mark>$1</mark>');
+}
+
+// ── SORT ──────────────────────────────────────────────────────────────────
+let sortCol='',sortDir=1;
+// delegate clicks for dynamically-added sortable headers
+document.getElementById('tableHead').addEventListener('click', e => {
+  const th = e.target.closest('th.sortable');
+  if (th && th.dataset.col) handleThClick(th.dataset.col);
+});
+
+function handleThClick(col){
+  if(sortCol===col){sortDir*=-1;}else{sortCol=col;sortDir=-1;}
+  document.getElementById('sortSelect').value='';
+  applyFilters();
+}
+
+// ── MODE ──────────────────────────────────────────────────────────────────
+function selectMode(mode){
+  currentMode=mode;
+  document.getElementById('btnStudents').classList.toggle('active',mode==='students');
+  document.getElementById('btnFaculty').classList.toggle('active',mode==='faculty');
+  // Show two-card layout
+  document.getElementById('csvCardBox').style.display='block';
+  document.getElementById('mapUploadWrap').style.display='flex';
+}
+
+function resetDashboard(){
+  document.getElementById('dashboard').classList.remove('visible');
+  document.getElementById('dashboard').style.display='none';
+  document.getElementById('modeScreen').style.display='block';
+  document.getElementById('uploadZone').style.display='none';
+  document.getElementById('csvCardBox').style.display='none';
+  document.getElementById('mapUploadWrap').style.display='none';
+  document.getElementById('btnStudents').classList.remove('active');
+  document.getElementById('btnFaculty').classList.remove('active');
+  document.getElementById('fileInput').value='';
+  allData=[];filtered=[];page=1;currentMode='';programName='';
+  const instSel=document.getElementById('instituteFilter');
+  instSel.innerHTML='<option value="">Все институты</option>';
+  instSel.style.display='none';
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch{}});charts={};
+  closeDropdown();
+  const cds=document.getElementById('courseDetailSection');if(cds)cds.style.display='none';
+  window._rawRows=[];
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────
+function calcStats(data){
+  const total=data.length;
+  const members=data.filter(r=>r.state==='MEMBER').length;
+  const invited=data.filter(r=>r.state==='INVITED').length;
+  const deleted=data.filter(r=>r.state==='DELETED_MEMBER').length;
+  const membersAndDeleted=members+deleted;
+  const atLeast1=data.filter(r=>r.completed>=1).length;
+  const none=data.filter(r=>r.completed===0).length;
+  const noneMembers=currentFileType==='courseActivity'?data.filter(r=>r.completed===0).length:data.filter(r=>r.completed===0&&r.state==='MEMBER').length;
+  const atLeast5=data.filter(r=>r.completed>=5).length;
+  const totalCompleted=data.reduce((a,r)=>a+r.completed,0);
+  const totalHours=data.reduce((a,r)=>a+r.hours,0);
+  const avgCompleted=total?+(totalCompleted/total).toFixed(1):0;
+  const avgHours=total?+(totalHours/total).toFixed(1):0;
+  return{total,members,invited,deleted,membersAndDeleted,atLeast1,none,noneMembers,atLeast5,totalCompleted,totalHours,avgCompleted,avgHours};
+}
+
+function renderStats(data){
+  const s=calcStats(data),t=s.total||1;
+  const isF=currentMode==='faculty';
+  document.getElementById('statsGrid').innerHTML=`
+    <div class="stat-card s-indigo">
+      <div class="s-label">${isF?'Всего ППС':'Всего лицензий'}</div>
+      <div class="s-value" data-val="${s.total}">${s.total}</div>
+      <div class="s-sub">Загружено из файла</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Присоединились</div>
+      <div class="s-value" data-val="${s.membersAndDeleted}">${s.membersAndDeleted}</div>
+      <div class="s-sub">${Math.round(s.membersAndDeleted/t*100)}% от всех</div>
+    </div>
+    <div class="stat-card">
+      <div class="s-label">Активных</div>
+      <div class="s-value" data-val="${s.members}">${s.members}</div>
+      <div class="s-sub">${Math.round(s.members/t*100)}% от всех</div>
+    </div>
+    <div class="stat-card s-green">
+      <div class="s-label">Прошли ≥ 1 курса</div>
+      <div class="s-value" data-val="${s.atLeast1}">${s.atLeast1}</div>
+      <div class="s-sub">${Math.round(s.atLeast1/t*100)}% охват</div>
+    </div>
+    <div class="stat-card s-orange">
+      <div class="s-label">Пройдено курсов</div>
+      <div class="s-value" data-val="${s.totalCompleted}">${s.totalCompleted}</div>
+      <div class="s-sub">Ср. ${s.avgCompleted} на чел.</div>
+    </div>
+    <div class="stat-card s-red">
+      <div class="s-label">Без прогресса</div>
+      <div class="s-value" data-val="${s.noneMembers}">${s.noneMembers}</div>
+      <div class="s-sub">${Math.round(s.noneMembers/t*100)}% активных</div>
+    </div>
+    <div class="stat-card s-sky">
+      <div class="s-label">Приглашены</div>
+      <div class="s-value" data-val="${s.invited}">${s.invited}</div>
+      <div class="s-sub">${Math.round(s.invited/t*100)}% не присоединились</div>
+    </div>
+    <div class="stat-card s-purple">
+      <div class="s-label">Часов обучения</div>
+      <div class="s-value" data-val="${Math.round(s.totalHours)}">${Math.round(s.totalHours)}</div>
+      <div class="s-sub">Ср. ${s.avgHours} ч/чел.</div>
+    </div>`;
+  document.getElementById('cnt-full').textContent=allData.length+' чел.';
+  document.getElementById('cnt-none').textContent=allData.filter(r=>r.completed===0&&r.state==='MEMBER').length+' чел.';
+  document.getElementById('cnt-invited').textContent=allData.filter(r=>r.state==='INVITED').length+' чел.';
+  document.getElementById('cnt-by-institute').textContent=allData.filter(r=>r.state==='INVITED').length+' чел.';
+  document.getElementById('cnt-institute-report').textContent=allData.filter(r=>r.state==='INVITED').length+' чел.';
+  document.getElementById('cnt-institute-full').textContent=allData.filter(r=>r.state==='INVITED').length+' чел.';
+  setTimeout(()=>document.querySelectorAll('.s-value[data-val]').forEach(el=>animateValue(el,+el.dataset.val)),50);
+  renderPie('completionChart',[s.atLeast1,s.noneMembers,s.invited],['Прошли ≥ 1','Нет прогресса','Приглашены'],['#1d8348','#c0392b','#aeaeb2']);
+  renderPie('stateChart',[s.members,s.invited,s.deleted],['MEMBER','INVITED','DELETED'],['#0071e3','#0e6db5','#c7c7cc']);
+  renderHist(data);renderHoursChart(data);renderTopList(data);renderInsights(data,s);
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────
+function isDark(){return document.documentElement.getAttribute('data-theme')==='dark'}
+function TC(){return isDark()?'#8e8e93':'#6e6e73'}
+function GC(){return isDark()?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.04)'}
+function BC(){return isDark()?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.06)'}
+
+function renderPie(id,data,labels,colors){
+  if(charts[id])charts[id].destroy();
+  const bg=isDark()?'#1c1c1e':'#ffffff';
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:4,borderColor:bg,hoverBorderColor:bg,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',
+      plugins:{
+        legend:{position:'bottom',labels:{boxWidth:8,boxHeight:8,borderRadius:4,padding:14,font:{size:11.5,family:'inherit'},color:TC(),usePointStyle:true,pointStyle:'circle'}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw} чел.`},bodyFont:{family:'inherit',size:12},titleFont:{family:'inherit',size:12}}
+      }
+    }
+  });
+}
+
+function renderHist(data){
+  const b=[0,0,0,0,0,0];
+  data.forEach(r=>{const c=r.completed;if(c===0)b[0]++;else if(c===1)b[1]++;else if(c===2)b[2]++;else if(c<=5)b[3]++;else if(c<=10)b[4]++;else b[5]++;});
+  if(charts['hist'])charts['hist'].destroy();
+  const isF=currentMode==='faculty';
+  const main=isF?'rgba(29,131,72,0.7)':'rgba(0,113,227,0.7)';
+  const mainH=isF?'rgba(29,131,72,1)':'rgba(0,113,227,1)';
+  charts['hist']=new Chart(document.getElementById('histChart'),{
+    type:'bar',
+    data:{labels:['0 курсов','1','2','3–5','6–10','11+'],datasets:[{
+      label:'Человек',data:b,
+      backgroundColor:b.map((_,i)=>i===0?'rgba(192,57,43,0.7)':main),
+      hoverBackgroundColor:b.map((_,i)=>i===0?'rgba(192,57,43,1)':mainH),
+      borderRadius:6,borderSkipped:false,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{bodyFont:{family:'inherit'},titleFont:{family:'inherit'}}},
+      scales:{
+        x:{ticks:{color:TC(),font:{size:11,family:'inherit'}},grid:{color:GC()},border:{color:BC()}},
+        y:{ticks:{precision:0,color:TC(),font:{size:11,family:'inherit'}},grid:{color:GC()},border:{color:BC()}}
+      }
+    }
+  });
+}
+
+function renderHoursChart(data){
+  const top=data.filter(r=>r.hours>0).sort((a,b)=>b.hours-a.hours).slice(0,10);
+  if(charts['hours'])charts['hours'].destroy();
+  if(!top.length){document.getElementById('hoursChart').parentElement.innerHTML='<div class="empty"><div class="empty-icon">📊</div><p>Нет данных о часах</p></div>';return;}
+  charts['hours']=new Chart(document.getElementById('hoursChart'),{
+    type:'bar',
+    data:{
+      labels:top.map(r=>(r.name.split(' ')[0]||r.email.split('@')[0]).slice(0,12)),
+      datasets:[{label:'Часов',data:top.map(r=>+r.hours.toFixed(1)),
+        backgroundColor:'rgba(125,60,152,0.7)',hoverBackgroundColor:'rgba(125,60,152,1)',
+        borderRadius:5,borderSkipped:false}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{bodyFont:{family:'inherit'},titleFont:{family:'inherit'}}},
+      scales:{
+        x:{ticks:{color:TC(),font:{size:10,family:'inherit'}},grid:{color:GC()},border:{color:BC()}},
+        y:{ticks:{color:TC(),font:{size:11,family:'inherit'}},grid:{display:false},border:{color:BC()}}
+      }
+    }
+  });
+}
+
+function renderTopList(data){
+  const top=data.filter(r=>r.completed>0).sort((a,b)=>b.completed-a.completed).slice(0,5);
+  const ranks=['gold','silver','bronze','',''],medals=['🥇','🥈','🥉','4','5'];
+  document.getElementById('topCount').textContent=`из ${data.length}`;
+  document.getElementById('topList').innerHTML=top.length
+    ?top.map((r,i)=>`
+      <div class="top-item">
+        <div class="t-rank ${ranks[i]}">${medals[i]}</div>
+        <div class="t-av">${initials(r.name)}</div>
+        <div class="t-info">
+          <div class="t-name">${r.name||r.email}</div>
+          <div class="t-email">${r.email}</div>
+        </div>
+        <div class="t-score">${r.completed} к.</div>
+      </div>`).join('')
+    :'<div class="empty"><div class="empty-icon">🏆</div><p>Нет данных</p></div>';
+}
+
+function renderInsights(data,s){
+  const t=s.total||1,eng=Math.round(s.atLeast1/t*100);
+  const highPerf=data.filter(r=>r.completed>=5).length;
+  const R=28,C=2*Math.PI*R,filled=C*(eng/100);
+  const rc=eng>=60?'#1d8348':eng>=30?'#d35400':'#c0392b';
+  const ins=[
+    {cl:'ic-blue',icon:`<svg class="ring-svg" width="66" height="66" viewBox="0 0 66 66">
+      <circle class="ring-track" cx="33" cy="33" r="${R}" transform="rotate(-90 33 33)"/>
+      <circle class="ring-fill" cx="33" cy="33" r="${R}" transform="rotate(-90 33 33)" stroke="${rc}" stroke-dasharray="${filled} ${C}"/>
+      <text x="33" y="37" text-anchor="middle" font-size="13" font-weight="700" fill="${rc}" font-family="inherit">${eng}%</text>
+    </svg>`,title:'Вовлечённость',
+    desc:eng>=60?'Больше половины участников активны':eng>=30?'Менее половины прошли курс':'Низкая вовлечённость — нужно внимание'},
+    {cl:'ic-red',icon:'⚠️',title:`${s.noneMembers} чел. без прогресса`,desc:'Присоединились, но не завершили ни одного курса'},
+    {cl:'ic-green',icon:'⭐',title:`${highPerf} отличников`,desc:`Пройдено 5+ курсов — ${Math.round(highPerf/t*100)}% от всех`},
+    {cl:'ic-orange',icon:'⏱️',title:`Среднее: ${s.avgHours} ч/чел.`,desc:s.avgHours>=5?'Высокий показатель по времени':'Среднее время обучения на участника'},
+  ];
+  document.getElementById('insightGrid').innerHTML=ins.map((i,idx)=>`
+    <div class="insight-card ${i.cl}" style="${idx===0?'grid-column:1/-1;flex-direction:row;align-items:center;gap:16px':''}">
+      ${idx===0
+        ?`<div style="flex-shrink:0">${i.icon}</div><div><div class="i-title" style="font-size:13px">${i.title}</div><div class="i-desc">${i.desc}</div></div>`
+        :`<div class="i-icon">${i.icon}</div><div><div class="i-title">${i.title}</div><div class="i-desc">${i.desc}</div></div>`}
+    </div>`).join('');
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────
+function applyFilters(){
+  const q=document.getElementById('searchInput').value.toLowerCase().trim();
+  const st=document.getElementById('stateFilter').value;
+  const co=document.getElementById('completedFilter').value;
+  const so=document.getElementById('sortSelect').value;
+  const inst=document.getElementById('instituteFilter').value;
+  filtered=allData.filter(r=>{
+    if(q&&!r.name.toLowerCase().includes(q)&&!r.email.toLowerCase().includes(q)
+      &&!(r.institute||'').toLowerCase().includes(q)
+      &&!(r.eduProg||'').toLowerCase().includes(q))return false;
+    if(st&&r.state!==st)return false;
+    if(co==='none'&&r.completed!==0)return false;
+    if(co==='some'&&r.completed<1)return false;
+    if(co==='many'&&r.completed<5)return false;
+    if(inst&&(r.institute||'')!==inst)return false;
+    return true;
+  });
+  if(so==='completed_desc')filtered.sort((a,b)=>b.completed-a.completed);
+  else if(so==='completed_asc')filtered.sort((a,b)=>a.completed-b.completed);
+  else if(so==='hours_desc')filtered.sort((a,b)=>b.hours-a.hours);
+  else if(so==='name_asc')filtered.sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  else if(sortCol){filtered.sort((a,b)=>{
+    const av=a[sortCol],bv=b[sortCol];
+    if(typeof av==='number')return(av-bv)*sortDir;
+    return String(av).localeCompare(String(bv),'ru')*sortDir;
+  });}
+  page=1;renderTable();
+}
+
+function renderTable(){
+  const q=document.getElementById('searchInput').value.trim();
+  const start=(page-1)*ROWS_PER_PAGE;
+  document.getElementById('filteredCount').textContent=`${filtered.length} записей`;
+  document.querySelectorAll('th.sortable').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.dataset.col===sortCol)th.classList.add(sortDir>0?'sort-asc':'sort-desc');
+  });
+  document.getElementById('tableBody').innerHTML=filtered.slice(start,start+ROWS_PER_PAGE).length
+    ?filtered.slice(start,start+ROWS_PER_PAGE).map((r,i)=>{
+      const pct=r.enrolled>0?Math.round(r.completed/r.enrolled*100):0;
+      const bc=pct>=80?'#1d8348':pct>=40?'#0071e3':'#c0392b';
+      const hn=highlight(r.name||'—',q),he=highlight(r.email||'—',q);
+      const neverActive=!r.lastActivity;
+      const isF2=currentMode==='faculty';
+      const instDisp=r.institute?`<span class="inst-badge" title="${r.institute}">${r.institute}</span>`:'<span style="color:var(--muted2)">—</span>';
+      const progDisp=r.eduProg?`<span class="prog-badge" title="${r.eduProg}">${r.eduProg}</span>`:'<span style="color:var(--muted2)">—</span>';
+      return`<tr>
+        <td style="color:var(--muted2);font-size:11px">${start+i+1}</td>
+        <td><div style="display:flex;align-items:center;gap:9px">
+          <div style="width:26px;height:26px;border-radius:50%;background:var(--text);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--bg);flex-shrink:0">${initials(r.name)}</div>
+          <span style="font-weight:600">${hn}</span>
+        </div></td>
+        <td style="color:var(--muted)">${he}</td>
+        <td style="text-align:center">${r.enrolled}</td>
+        <td style="text-align:center;font-weight:600">${r.completed}</td>
+        <td style="min-width:80px"><span style="font-size:11px;color:${bc};font-weight:600">${pct}%</span>
+          <div class="prog-wrap"><div class="prog-bar" style="width:${pct}%;background:${bc}"></div></div></td>
+        <td style="color:var(--muted)">${r.hours.toFixed(1)}</td>
+        <td>${stateBadge(r.state)}</td>
+        <td style="color:var(--muted2);font-size:12px">${neverActive?'—':formatDate(r.lastActivity)}</td>
+        ${isF2?'':'<td>'+instDisp+'</td>'}
+        ${isF2?'':'<td>'+progDisp+'</td>'}
+      </tr>`;
+    }).join('')
+    :`<tr><td colspan="${currentMode==='faculty'?9:11}"><div class="empty"><div class="empty-icon">🔍</div><p>Ничего не найдено</p></div></td></tr>`;
+  renderPagination();
+}
+
+function renderPagination(){
+  const total=Math.ceil(filtered.length/ROWS_PER_PAGE);
+  const el=document.getElementById('pagination');
+  if(total<=1){el.innerHTML='';return;}
+  const start=(page-1)*ROWS_PER_PAGE+1,end=Math.min(page*ROWS_PER_PAGE,filtered.length);
+  let btns='';
+  for(let i=1;i<=total;i++){
+    if(i===1||i===total||Math.abs(i-page)<=1)
+      btns+=`<button onclick="goPage(${i})" class="${i===page?'active':''}">${i}</button>`;
+    else if(Math.abs(i-page)===2)
+      btns+=`<span style="color:var(--muted2);padding:0 4px">…</span>`;
+  }
+  el.innerHTML=`
+    <span class="pager-info">${start}–${end} из ${filtered.length}</span>
+    <div class="pager-btns">
+      <button onclick="goPage(${page-1})" ${page<=1?'disabled':''}>‹</button>
+      ${btns}
+      <button onclick="goPage(${page+1})" ${page>=total?'disabled':''}>›</button>
+    </div>`;
+}
+window.goPage=p=>{page=p;renderTable();document.getElementById('mainTable').scrollIntoView({behavior:'smooth',block:'start'})};
+
+
+// ── MAPPING FILE LOADER ─────────────────────────────────────────────────────
+document.getElementById('mapInput').addEventListener('change', e => {
+  if (e.target.files[0]) loadMappingFile(e.target.files[0]);
+});
+
+function loadMappingFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = e => parseMappingCSV(e.target.result);
+    reader.readAsText(file, 'utf-8');
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => parseMappingXLSX(e.target.result);
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseMappingXLSX(buffer) {
+  try {
+    const wb = XLSX.read(buffer, { type: 'array' });
+    // Try "Лист1" first, then first sheet
+    const sheetName = wb.SheetNames.includes('Лист1') ? 'Лист1' : wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    buildMappingFromRows(rows);
+  } catch(err) {
+    showToast('Ошибка чтения файла маппинга: ' + err.message, 'error');
+  }
+}
+
+function parseMappingCSV(text) {
+  const parsed = Papa.parse(text, { header: false, skipEmptyLines: true });
+  buildMappingFromRows(parsed.data);
+}
+
+function buildMappingFromRows(rows) {
+  if (!rows || rows.length < 2) { showToast('Файл маппинга пустой', 'error'); return; }
+  const header = rows[0].map(h => String(h).toLowerCase().trim());
+  // Find column indices by name variants
+  const emailIdx = header.findIndex(h => h.includes('email') || h.includes('почта'));
+  const instIdx  = header.findIndex(h => h.includes('институт') || h.includes('гоп') || h.includes('кафедр') || h.includes('institute'));
+  const progIdx  = header.findIndex(h => h.includes('бағдарлама') || h.includes('образовательной') || h.includes('program') || h.includes('наименование') || h.includes('специальн'));
+
+  if (emailIdx < 0) { showToast('Не найдена колонка Email в файле маппинга', 'error'); return; }
+
+  mappingData = {};
+  let count = 0;
+  rows.slice(1).forEach(row => {
+    const email = String(row[emailIdx] || '').toLowerCase().trim();
+    if (!email) return;
+    mappingData[email] = {
+      institute: instIdx >= 0 ? String(row[instIdx] || '').trim() : '',
+      eduProg:   progIdx >= 0 ? String(row[progIdx] || '').trim() : '',
+    };
+    count++;
+  });
+
+  hasMappingLoaded = true;
+  const wrap = document.getElementById('mapUploadWrap');
+  wrap.classList.add('loaded');
+  const st = document.getElementById('mapStatus');
+  st.textContent = `✓ ${count} записей`;
+  st.classList.add('ok');
+  showToast(`Маппинг загружен: ${count} записей`, 'success');
+
+  // Re-merge if CSV already loaded
+  if (allData.length) {
+    mergeWithMapping(allData);
+    renderStats(allData);
+    rebuildInstituteFilter();
+    applyFilters();
+  }
+}
+
+function mergeWithMapping(data) {
+  data.forEach(r => {
+    const key = (r.email || '').toLowerCase().trim();
+    const m = mappingData[key];
+    if (m) {
+      // Mapping file overrides CSV values (used for additional/corrected data)
+      if (m.institute) r.institute = m.institute;
+      if (m.eduProg)   r.eduProg   = m.eduProg;
+    }
+  });
+}
+
+function rebuildInstituteFilter() {
+  const sel = document.getElementById('instituteFilter');
+  const current = sel.value;
+  const institutes = [...new Set(allData.map(r => r.institute || '').filter(Boolean))].sort((a,b) => a.localeCompare(b, 'ru'));
+  sel.innerHTML = '<option value="">Все институты</option>' +
+    institutes.map(i => `<option value="${i}" ${i === current ? 'selected' : ''}>${i}</option>`).join('');
+  sel.style.display = (institutes.length && currentMode !== 'faculty') ? '' : 'none';
+}
+
+
+// ── CSV PARSE ─────────────────────────────────────────────────────────────
+// ── FILE TYPE DETECTION ───────────────────────────────────────────────────
+function detectFileType(rows){
+  if(!rows.length) return 'programActivity';
+  const cols=Object.keys(rows[0]);
+  // CourseActivity: has 'Course' col + 'Completed' (Yes/No) + 'Enrollment Time'
+  // ProgramActivity: has '# Enrolled Courses' / '# Completed Courses'
+  if(cols.includes('Course')||cols.includes('Enrollment Time')||cols.includes('Last Course Activity Time'))
+    return 'courseActivity';
+  if(cols.includes('# Enrolled Courses')||cols.includes('# Completed Courses'))
+    return 'programActivity';
+  // fallback: check for Completed column with Yes/No values
+  if(cols.includes('Completed')&&!cols.includes('# Completed Courses'))
+    return 'courseActivity';
+  return 'programActivity';
+}
+
+// ── PARSE ProgramActivity ─────────────────────────────────────────────────
+function parseProgramActivity(rows){
+  return rows.map(r=>({
+    name:r['Name']||'',
+    email:r['Email']||'',
+    enrolled:parseInt(r['# Enrolled Courses'])||0,
+    completed:parseInt(r['# Completed Courses'])||0,
+    state:r['Member State']||'',
+    joinDate:r['Join Date']||'',
+    inviteDate:r['Invitation Date']||'',
+    lastActivity:r['Last Program Activity Date']||'',
+    hours:parseFloat(r['Learning Hours'])||0,
+    program:r['Program Name']||'',
+    institute:r['Job Type']||'',
+    eduProg:r['Job Title']||'',
+  }));
+}
+
+// ── PARSE CourseActivity ──────────────────────────────────────────────────
+// Реальные колонки: Course, Completed (Yes/No), Enrollment Time,
+// Last Course Activity Time, Completion Time, Learning Hours, Job Type, Job Title
+function parseCourseActivity(rows){
+  const map={};
+  rows.forEach(r=>{
+    const email=(r['Email']||'').trim().toLowerCase();
+    if(!email) return;
+    if(!map[email]){
+      map[email]={
+        name:r['Name']||'',
+        email,
+        enrolled:0,
+        completed:0,
+        state:'MEMBER',           // CourseActivity нет Member State → все активные
+        joinDate:r['Enrollment Time']||'',
+        inviteDate:'',
+        lastActivity:'',
+        hours:0,
+        program:r['Program Name']||'',
+        institute:r['Job Type']||'',
+        eduProg:r['Job Title']||'',
+        _lastTs:0,
+      };
+    }
+    const p=map[email];
+    p.enrolled++;
+    // Completed column = 'Yes' / 'No'
+    const compVal=(r['Completed']||'').toString().trim().toLowerCase();
+    const isComp=compVal==='yes'||compVal==='true'||compVal==='1';
+    if(isComp) p.completed++;
+    // Hours
+    p.hours+=parseFloat(r['Learning Hours'])||0;
+    // Last activity = max(Last Course Activity Time, Completion Time)
+    for(const col of['Last Course Activity Time','Completion Time','Enrollment Time']){
+      const v=r[col]||'';
+      if(v){const ts=new Date(v).getTime();if(!isNaN(ts)&&ts>p._lastTs){p._lastTs=ts;p.lastActivity=v;}}
+    }
+  });
+  return Object.values(map).map(p=>{delete p._lastTs;return p;});
+}
+
+// ── GLOBAL file type tracker ──────────────────────────────────────────────
+let currentFileType='programActivity';
+
+function parseCSV(text){
+  const rows=Papa.parse(text,{header:true,skipEmptyLines:true}).data;
+  currentFileType=detectFileType(rows);
+  if(currentFileType==='courseActivity') return parseCourseActivity(rows);
+  return parseProgramActivity(rows);
+}
+
+function loadFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const rawText=e.target.result;
+    const parsed=Papa.parse(rawText,{header:true,skipEmptyLines:true});
+    window._rawRows=parsed.data; // store for detail table
+    currentFileType=detectFileType(parsed.data);
+    const data=currentFileType==='courseActivity'?parseCourseActivity(parsed.data):parseProgramActivity(parsed.data);
+    if(!data.length){showToast('Файл пустой или неверный формат','error');return;}
+    allData=data;filtered=[...data];
+    programName=data[0]&&data[0].program?data[0].program:'';
+    const isF=currentMode==='faculty';
+    document.getElementById('modeScreen').style.display='none';
+    const dash=document.getElementById('dashboard');
+    dash.style.display='block';
+    requestAnimationFrame(()=>dash.classList.add('visible'));
+    document.getElementById('breadMode').textContent=isF?'ППС':'Студенты';
+    document.getElementById('reportTitle').textContent=programName||file.name.replace('.csv','');
+    document.getElementById('dashMeta').innerHTML=`
+      <span class="meta-pill ${isF?'mode-f':'mode-s'}">${isF?'👨‍🏫 ППС':'🎓 Студенты'}</span>
+      <span class="meta-pill">${file.name}</span>
+      <span class="meta-pill">${currentFileType==='courseActivity'?'📚 CourseActivity':'📊 ProgramActivity'}</span>
+      <span class="meta-pill">${data.length} записей</span>
+      <span class="meta-pill">${new Date().toLocaleDateString('ru-RU')}</span>`;
+    document.getElementById('tableTitle').textContent=isF?'Преподаватели (ППС)':'Список студентов';
+    const fioLabel=isF?'ФИО преподавателя':'ФИО студента';
+    const enrollLbl=currentFileType==='courseActivity'?'Курсов записано':'Записался';
+    const completeLbl=currentFileType==='courseActivity'?'Курсов пройдено':'Прошёл';
+    document.getElementById('tableHead').innerHTML=`<tr>
+      <th>#</th>
+      <th class="sortable" data-col="name" onclick="handleThClick('name')">${fioLabel}</th>
+      <th>Email</th>
+      <th class="sortable" data-col="enrolled" onclick="handleThClick('enrolled')">${enrollLbl}</th>
+      <th class="sortable" data-col="completed" onclick="handleThClick('completed')">${completeLbl}</th>
+      <th>% выполнения</th>
+      <th class="sortable" data-col="hours" onclick="handleThClick('hours')">Часов</th>
+      <th>Статус</th>
+      <th class="sortable" data-col="lastActivity" onclick="handleThClick('lastActivity')">Последняя активность</th>
+      ${isF?'':'<th class="sortable th-inst" data-col="institute">Институт</th>'}
+      ${isF?'':'<th class="sortable th-prog" data-col="eduProg">Образов. программа</th>'}
+    </tr>`;
+    const isCourseAct=currentFileType==='courseActivity';
+    document.getElementById('opt-invited').style.display=(isF||isCourseAct)?'none':'flex';
+    document.getElementById('opt-by-institute').style.display=(isF||isCourseAct)?'none':'flex';
+    document.getElementById('opt-institute-report').style.display=(isF||isCourseAct)?'none':'flex';
+    document.getElementById('opt-institute-full').style.display=(isF||isCourseAct)?'none':'flex';
+    document.getElementById('chipInvited').style.display=(isF||isCourseAct)?'none':'inline-flex';
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('chip-active'));
+    document.querySelector('.chip[data-q="all"]').classList.add('chip-active');
+    sortCol='';sortDir=-1;
+    if(hasMappingLoaded) mergeWithMapping(data);
+    rebuildInstituteFilter();
+    renderStats(data);renderTable();
+    const ftLabel=currentFileType==='courseActivity'?'CourseActivity':'ProgramActivity';
+    showToast(`Загружено ${data.length} записей · ${ftLabel}`,'success');
+    // Show/hide course detail section
+    const cds=document.getElementById('courseDetailSection');
+    if(cds){
+      cds.style.display=currentFileType==='courseActivity'?'block':'none';
+      if(currentFileType==='courseActivity'){_courseDetailFilter='all';renderCourseDetail();}
+    }
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+// ── DROPDOWN ──────────────────────────────────────────────────────────────
+function toggleDropdown(e){e.stopPropagation();document.getElementById('exportDropdown').classList.toggle('open')}
+function closeDropdown(){document.getElementById('exportDropdown').classList.remove('open')}
+document.addEventListener('click',closeDropdown);
+document.getElementById('exportDropdown').addEventListener('click',e=>e.stopPropagation());
+document.getElementById('exportArrowBtn').addEventListener('click',toggleDropdown);
+document.getElementById('exportMainBtn').addEventListener('click',()=>runExport('full'));
+
+// ── EXCEL HELPERS ─────────────────────────────────────────────────────────
+const THIN={style:'thin',color:{argb:'FF000000'}};
+const ALL_BORDERS={top:THIN,left:THIN,bottom:THIN,right:THIN};
+const HDR_FILL={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}};
+const HDR_FONT={bold:true,name:'Times New Roman',size:11,color:{argb:'FFFFFFFF'}};
+const BODY_FONT={name:'Times New Roman',size:11,color:{argb:'FF000000'}};
+function applyHdrCell(cell,text,align='center',wrapText=true){
+  cell.value=text;cell.font=HDR_FONT;cell.fill=HDR_FILL;
+  cell.alignment={horizontal:align,vertical:'middle',wrapText};cell.border=ALL_BORDERS;
+}
+function applyDataCell(cell,value,align='left'){
+  cell.value=value;cell.font=BODY_FONT;
+  cell.alignment={horizontal:align,vertical:'middle'};cell.border=ALL_BORDERS;
+}
+function applyTitleCell(ws,rowNum,text,cols){
+  const lastCol=String.fromCharCode(64+cols);
+  ws.mergeCells(`A${rowNum}:${lastCol}${rowNum}`);
+  const merged=ws.getCell(`A${rowNum}`);
+  merged.value=text;
+  merged.font={bold:true,name:'Times New Roman',size:13,color:{argb:'FF000000'}};
+  merged.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}};
+  merged.alignment={horizontal:'center',vertical:'middle',wrapText:false};
+  merged.border=ALL_BORDERS;
+  ws.getRow(rowNum).height=30;
+}
+function nowDateStr(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  return`${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()} г.`;
+}
+function stateRu(s){
+  if(s==='MEMBER')return'Активный';if(s==='INVITED')return'Приглашён';if(s==='DELETED_MEMBER')return'Удалён';return s||'';
+}
+
+// ── SHEET BUILDERS ────────────────────────────────────────────────────────
+function addSheetSummary(wb,titleText,inst,s,isF){
+  const ws=wb.addWorksheet('Общая статистика');
+  if(isF){
+    ws.columns=[{width:6},{width:38},{width:22},{width:28},{width:28},{width:30},{width:24}];
+    applyTitleCell(ws,1,titleText,7);
+    ['№','Институт','Количество лицензий','Всего присоединились','Обучаются сейчас','Общее число обучающихся завершило как минимум 1 курс.','Всего завершённых курсов']
+      .forEach((t,i)=>applyHdrCell(ws.getRow(2).getCell(i+1),t));
+    ws.getRow(2).height=56;
+    const dr=ws.getRow(3);dr.height=20;
+    applyDataCell(dr.getCell(1),'','center');applyDataCell(dr.getCell(2),inst,'left');
+    applyDataCell(dr.getCell(3),s.total,'right');applyDataCell(dr.getCell(4),s.membersAndDeleted,'right');
+    applyDataCell(dr.getCell(5),s.members,'right');applyDataCell(dr.getCell(6),s.atLeast1,'right');
+    applyDataCell(dr.getCell(7),s.totalCompleted,'right');
+  } else {
+    ws.columns=[{width:6},{width:38},{width:22},{width:28},{width:28},{width:24},{width:30},{width:24}];
+    applyTitleCell(ws,1,titleText,8);
+    ['№','Институт','Количество лицензий','Всего присоединились','Обучаются сейчас','Количество приглашённых','Общее число обучающихся завершило как минимум 1 курс.','Всего завершённых курсов']
+      .forEach((t,i)=>applyHdrCell(ws.getRow(2).getCell(i+1),t));
+    ws.getRow(2).height=56;
+    const dr=ws.getRow(3);dr.height=20;
+    applyDataCell(dr.getCell(1),'','center');applyDataCell(dr.getCell(2),inst,'left');
+    applyDataCell(dr.getCell(3),s.total,'right');applyDataCell(dr.getCell(4),s.membersAndDeleted,'right');
+    applyDataCell(dr.getCell(5),s.members,'right');applyDataCell(dr.getCell(6),s.invited,'right');
+    applyDataCell(dr.getCell(7),s.atLeast1,'right');applyDataCell(dr.getCell(8),s.totalCompleted,'right');
+  }
+}
+function addSheetSummaryNone(wb,titleText,inst,total,noneCount){
+  const ws=wb.addWorksheet('Общая статистика');
+  ws.columns=[{width:6},{width:38},{width:28},{width:28}];
+  applyTitleCell(ws,1,titleText,4);
+  ['№','Институт','Всего активных участников','Не прошли ни одного курса'].forEach((t,i)=>applyHdrCell(ws.getRow(2).getCell(i+1),t));
+  ws.getRow(2).height=52;
+  const dr=ws.getRow(3);dr.height=20;
+  applyDataCell(dr.getCell(1),'','center');applyDataCell(dr.getCell(2),inst,'left');
+  applyDataCell(dr.getCell(3),total,'right');applyDataCell(dr.getCell(4),noneCount,'right');
+}
+function addSheetSummaryInvited(wb,titleText,inst,total,invitedCount){
+  const ws=wb.addWorksheet('Общая статистика');
+  ws.columns=[{width:6},{width:38},{width:28},{width:28}];
+  applyTitleCell(ws,1,titleText,4);
+  ['№','Институт','Всего лицензий','Приглашены, но не присоединились'].forEach((t,i)=>applyHdrCell(ws.getRow(2).getCell(i+1),t));
+  ws.getRow(2).height=52;
+  const dr=ws.getRow(3);dr.height=20;
+  applyDataCell(dr.getCell(1),'','center');applyDataCell(dr.getCell(2),inst,'left');
+  applyDataCell(dr.getCell(3),total,'right');applyDataCell(dr.getCell(4),invitedCount,'right');
+}
+function addSheetDetail(wb,titleText,rows,isF){
+  const ws=wb.addWorksheet('Подробная статистика');
+  ws.views=[{state:'frozen',xSplit:0,ySplit:1}];
+  if(isF){
+    ws.columns=[{width:38},{width:34},{width:24},{width:18},{width:18},{width:20},{width:20},{width:22},{width:18}];
+    ['ФИО преподавателя','Email','Зарегистрировались на курсов','Пройдено курсов','Статус','Дата вступления','Дата приглашения','Последняя активность','Часов обучения']
+      .forEach((t,i)=>applyHdrCell(ws.getRow(1).getCell(i+1),t));
+    ws.getRow(1).height=40;
+    rows.forEach((r,idx)=>{
+      const row=ws.getRow(idx+2);row.height=18;
+      applyDataCell(row.getCell(1),r.name,'left');applyDataCell(row.getCell(2),r.email,'left');
+      applyDataCell(row.getCell(3),r.enrolled,'right');applyDataCell(row.getCell(4),r.completed,'right');
+      applyDataCell(row.getCell(5),stateRu(r.state),'center');
+      applyDataCell(row.getCell(6),formatDatePlain(r.joinDate),'center');
+      applyDataCell(row.getCell(7),formatDatePlain(r.inviteDate),'center');
+      applyDataCell(row.getCell(8),formatDatePlain(r.lastActivity),'center');
+      applyDataCell(row.getCell(9),+r.hours.toFixed(2),'right');
+    });
+  } else {
+    ws.columns=[{width:38},{width:34},{width:24},{width:18},{width:18},{width:20},{width:20},{width:22},{width:18},{width:26},{width:30}];
+    [['ФИО студента','Email',currentFileType==='courseActivity'?'Курсов записано':'Зарегистрировались на курсов',currentFileType==='courseActivity'?'Курсов пройдено':'Пройдено курсов','Статус','Дата вступления','Дата приглашения','Последняя активность','Часов обучения','Институт','Наименование образовательной программы']]
+      [0].forEach((t,i)=>applyHdrCell(ws.getRow(1).getCell(i+1),t));
+    ws.getRow(1).height=40;
+    rows.forEach((r,idx)=>{
+      const row=ws.getRow(idx+2);row.height=18;
+      applyDataCell(row.getCell(1),r.name,'left');applyDataCell(row.getCell(2),r.email,'left');
+      applyDataCell(row.getCell(3),r.enrolled,'right');applyDataCell(row.getCell(4),r.completed,'right');
+      applyDataCell(row.getCell(5),stateRu(r.state),'center');
+      applyDataCell(row.getCell(6),formatDatePlain(r.joinDate),'center');
+      applyDataCell(row.getCell(7),formatDatePlain(r.inviteDate),'center');
+      applyDataCell(row.getCell(8),formatDatePlain(r.lastActivity),'center');
+      applyDataCell(row.getCell(9),+r.hours.toFixed(2),'right');
+      applyDataCell(row.getCell(10),r.institute||'','left');applyDataCell(row.getCell(11),r.eduProg||'','left');
+    });
+  }
+}
+function addSheetDetailNone(wb,titleText,rows,isF){
+  const ws=wb.addWorksheet('Подробная статистика');
+  ws.views=[{state:'frozen',xSplit:0,ySplit:1}];
+  if(isF){
+    ws.columns=[{width:38},{width:34},{width:24},{width:20},{width:22},{width:18}];
+    [isF?'ФИО преподавателя':'ФИО студента','Email','Зарегистрировались на курсов','Статус','Дата приглашения','Часов на платформе']
+      .forEach((t,i)=>applyHdrCell(ws.getRow(1).getCell(i+1),t));
+    ws.getRow(1).height=40;
+    rows.forEach((r,idx)=>{
+      const row=ws.getRow(idx+2);row.height=18;
+      applyDataCell(row.getCell(1),r.name,'left');applyDataCell(row.getCell(2),r.email,'left');
+      applyDataCell(row.getCell(3),r.enrolled,'right');
+      applyDataCell(row.getCell(4),stateRu(r.state),'center');
+      applyDataCell(row.getCell(5),formatDatePlain(r.inviteDate),'center');
+      applyDataCell(row.getCell(6),+r.hours.toFixed(2),'right');
+    });
+  } else {
+    ws.columns=[{width:38},{width:34},{width:24},{width:20},{width:22},{width:18},{width:26},{width:36}];
+    ['ФИО студента','Email','Зарегистрировались на курсов','Статус','Дата приглашения','Часов на платформе','Институт','Наименование образовательной программы']
+      .forEach((t,i)=>applyHdrCell(ws.getRow(1).getCell(i+1),t));
+    ws.getRow(1).height=40;
+    rows.forEach((r,idx)=>{
+      const row=ws.getRow(idx+2);row.height=18;
+      applyDataCell(row.getCell(1),r.name,'left');applyDataCell(row.getCell(2),r.email,'left');
+      applyDataCell(row.getCell(3),r.enrolled,'right');
+      applyDataCell(row.getCell(4),stateRu(r.state),'center');
+      applyDataCell(row.getCell(5),formatDatePlain(r.inviteDate),'center');
+      applyDataCell(row.getCell(6),+r.hours.toFixed(2),'right');
+      applyDataCell(row.getCell(7),r.institute||'','left');
+      applyDataCell(row.getCell(8),r.eduProg||'','left');
+    });
+  }
+}
+function addSheetDetailInvited(wb,titleText,rows){
+  const ws=wb.addWorksheet('Подробная статистика');
+  ws.views=[{state:'frozen',xSplit:0,ySplit:1}];
+  ws.columns=[{width:38},{width:34},{width:24},{width:18},{width:26},{width:36}];
+  ['ФИО студента','Email','Дата приглашения','Статус','Институт','Наименование образовательной программы']
+    .forEach((t,i)=>applyHdrCell(ws.getRow(1).getCell(i+1),t));
+  ws.getRow(1).height=40;
+  rows.forEach((r,idx)=>{
+    const row=ws.getRow(idx+2);row.height=18;
+    applyDataCell(row.getCell(1),r.name||'(не указано)','left');
+    applyDataCell(row.getCell(2),r.email,'left');
+    applyDataCell(row.getCell(3),formatDatePlain(r.inviteDate),'center');
+    applyDataCell(row.getCell(4),stateRu(r.state),'center');
+    applyDataCell(row.getCell(5),r.institute||'','left');
+    applyDataCell(row.getCell(6),r.eduProg||'','left');
+  });
+}
+async function downloadWb(wb,filename){
+  const buffer=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+// ── SHEET: По институтам ───────────────────────────────────────────────────
+function addSheetByInstitute(wb, data) {
+  const hasMapped = data.some(r => r.institute);
+  if (!hasMapped) return; // skip if no mapping loaded
+
+  const ws = wb.addWorksheet('По институтам');
+  ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+  ws.columns = [
+    {width:32},{width:36},{width:18},{width:18},{width:18},{width:18},{width:18},{width:18}
+  ];
+  ['Институт','Образов. программа','Всего','Активных (MEMBER)','Приглашено','Удалено',
+   'Прошли ≥1 курс','Всего часов']
+    .forEach((t,i) => applyHdrCell(ws.getRow(1).getCell(i+1), t));
+  ws.getRow(1).height = 44;
+
+  // Group by institute + eduProg
+  const groups = {};
+  data.forEach(r => {
+    const key = (r.institute||'(не указан)') + '|||' + (r.eduProg||'');
+    if (!groups[key]) groups[key] = {
+      institute: r.institute||'(не указан)', eduProg: r.eduProg||'',
+      total:0, members:0, invited:0, deleted:0, passed:0, hours:0
+    };
+    const g = groups[key];
+    g.total++;
+    if (r.state==='MEMBER') g.members++;
+    else if (r.state==='INVITED') g.invited++;
+    else if (r.state==='DELETED_MEMBER') g.deleted++;
+    if (r.completed > 0) g.passed++;
+    g.hours += r.hours;
+  });
+
+  const sorted = Object.values(groups).sort((a,b) =>
+    a.institute.localeCompare(b.institute,'ru') || a.eduProg.localeCompare(b.eduProg,'ru')
+  );
+
+  sorted.forEach((g, idx) => {
+    const row = ws.getRow(idx+2); row.height = 18;
+    applyDataCell(row.getCell(1), g.institute, 'left');
+    applyDataCell(row.getCell(2), g.eduProg, 'left');
+    applyDataCell(row.getCell(3), g.total, 'right');
+    applyDataCell(row.getCell(4), g.members, 'right');
+    applyDataCell(row.getCell(5), g.invited, 'right');
+    applyDataCell(row.getCell(6), g.deleted, 'right');
+    applyDataCell(row.getCell(7), g.passed, 'right');
+    applyDataCell(row.getCell(8), +g.hours.toFixed(1), 'right');
+  });
+}
+
+// ── EXPORT RUNNERS ────────────────────────────────────────────────────────
+async function runExport(type){
+  closeDropdown();
+  const btn=document.getElementById('exportMainBtn'),txt=document.getElementById('exportBtnText');
+  btn.classList.add('loading');txt.innerHTML='<span class="spinner"></span> Генерация...';
+  try{
+    const isF=currentMode==='faculty',inst=programName||'КАЗАТИУ';
+    const dateStr=nowDateStr(),typeWord=isF?'ППС':'студентам';
+    const wb=new ExcelJS.Workbook();wb.creator='Coursera Analytics';wb.created=new Date();
+    if(type==='full'){
+      const s=calcStats(allData),titleText=`Информация по ${typeWord} на ${dateStr}`;
+      addSheetSummary(wb,titleText,inst,s,isF);
+      addSheetDetail(wb,titleText,[...allData].sort((a,b)=>b.completed-a.completed),isF);
+      if(!isF) addSheetByInstitute(wb,allData);
+      await downloadWb(wb,buildFilename(`Отчет по ${typeWord} Coursera`)+'.xlsx');
+      showToast('Полный отчёт выгружен','success');
+    } else if(type==='none'){
+      const noneRows=(currentFileType==='courseActivity'
+        ?allData.filter(r=>r.completed===0)
+        :allData.filter(r=>r.completed===0&&r.state==='MEMBER')
+      ).sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+      const memberCount=currentFileType==='courseActivity'?allData.length:allData.filter(r=>r.state==='MEMBER').length;
+      const titleText=`Участники, не прошедшие ни один курс (${typeWord}) на ${dateStr}`;
+      addSheetSummaryNone(wb,titleText,inst,memberCount,noneRows.length);
+      addSheetDetailNone(wb,titleText,noneRows,isF);
+      await downloadWb(wb,buildFilename(`Отчет — не прошедшие ни один курс (${typeWord}) Coursera`)+'.xlsx');
+      showToast('Отчёт выгружен','success');
+    } else if(type==='invited'){
+      const invRows=allData.filter(r=>r.state==='INVITED').sort((a,b)=>(new Date(b.inviteDate||0))-(new Date(a.inviteDate||0)));
+      const titleText=`Приглашённые студенты (не присоединились) на ${dateStr}`;
+      addSheetSummaryInvited(wb,titleText,inst,allData.length,invRows.length);
+      addSheetDetailInvited(wb,titleText,invRows);
+      await downloadWb(wb,buildFilename(`Отчет — приглашённые студенты Coursera`)+'.xlsx');
+      showToast('Отчёт выгружен','success');
+    } else if(type==='by_institute'){
+      await exportByInstitute(dateStr,inst);
+      return; // exportByInstitute handles its own download
+    } else if(type==='institute_report'){
+      await exportInstituteReport(dateStr,inst);
+      return;
+    } else if(type==='institute_full'){
+      await exportInstituteFull(dateStr,inst);
+      return;
+    }
+  }catch(err){showToast('Ошибка: '+err.message,'error');console.error(err);}
+  finally{btn.classList.remove('loading');txt.textContent='Экспорт Excel';}
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change',e=>{
+  if(!e.target.files[0])return;
+  const f=e.target.files[0];
+  // Update card UI
+  const box=document.getElementById('csvCardBox');
+  if(box){box.style.borderStyle='solid';box.style.borderColor='var(--green)';box.style.background='var(--green-l)';}
+  const nm=document.getElementById('csvCardName');if(nm){nm.textContent=f.name;nm.style.display='block';}
+  loadFile(f);
+});
+document.getElementById('mapInput').addEventListener('change',e=>{if(e.target.files[0])loadMappingFile(e.target.files[0])});
+const zone=document.getElementById('uploadZone');
+zone.addEventListener('click',()=>document.getElementById('fileInput').click());
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over')});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
+document.getElementById('searchInput').addEventListener('input',applyFilters);
+document.getElementById('stateFilter').addEventListener('change',applyFilters);
+document.getElementById('completedFilter').addEventListener('change',applyFilters);
+document.getElementById('sortSelect').addEventListener('change',applyFilters);
+
+// ═══ COURSE DETAIL TABLE (CourseActivity only) ═══════════════════
+let _courseDetailFilter='all';
+
+function setCourseFilter(f,btn){
+  _courseDetailFilter=f;
+  document.querySelectorAll('#courseDetailChips .chip').forEach(b=>b.classList.remove('chip-active'));
+  btn.classList.add('chip-active');
+  renderCourseDetail();
+}
+
+function renderCourseDetail(){
+  const rawRows=window._rawRows||[];
+  const q=(document.getElementById('courseDetailSearch').value||'').toLowerCase();
+  let data=[...rawRows];
+  if(_courseDetailFilter==='yes')data=data.filter(r=>(r['Completed']||'').trim().toLowerCase()==='yes');
+  if(_courseDetailFilter==='no')data=data.filter(r=>(r['Completed']||'').trim().toLowerCase()!=='yes');
+  if(q)data=data.filter(r=>(r['Name']||'').toLowerCase().includes(q)||(r['Course']||'').toLowerCase().includes(q));
+  document.getElementById('courseDetailCount').textContent=data.length+' записей';
+  const body=document.getElementById('courseDetailBody');
+  body.innerHTML=data.slice(0,500).map((r,i)=>{
+    const comp=(r['Completed']||'').trim().toLowerCase()==='yes';
+    const prog=parseFloat(r['Overall Progress']||0);
+    const grade=r['Course Grade']?parseFloat(r['Course Grade']).toFixed(0)+'%':'—';
+    const hours=parseFloat(r['Learning Hours']||0).toFixed(1);
+    const bc=comp?'var(--green)':'var(--blue)';
+    return`<tr>
+      <td style="color:var(--muted2);font-size:11px">${i+1}</td>
+      <td style="font-weight:500;font-size:12px;max-width:180px">${r['Name']||'—'}</td>
+      <td style="font-size:12px;max-width:280px">${r['Course']||'—'}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:4px;background:var(--divide);border-radius:99px;min-width:50px;overflow:hidden">
+          <div style="height:100%;width:${prog}%;background:${bc};border-radius:99px"></div></div>
+        <span style="font-size:11px;color:var(--muted);min-width:32px">${prog.toFixed(0)}%</span></div></td>
+      <td><span class="badge ${comp?'badge-green':'badge-gray'}">${comp?'✓ пройден':'⏳ в процессе'}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${hours}h</td>
+      <td style="font-size:12px;color:var(--muted)">${grade}</td>
+    </tr>`;
+  }).join('');
+  if(data.length>500){
+    body.innerHTML+=`<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--muted);font-size:12px">...ещё ${data.length-500} записей — используйте поиск</td></tr>`;
+  }
+}
+
+
+// ═══ ЭКСПОРТ ПО ИНСТИТУТАМ (не присоединились) ══════════════════
+async function exportByInstitute(dateStr, inst) {
+  const btn = document.getElementById('exportMainBtn');
+  const txt = document.getElementById('exportBtnText');
+  btn.classList.add('loading');
+  txt.innerHTML = '<span class="spinner"></span> Генерация...';
+
+  try {
+    // Все INVITED студенты
+    const invRows = allData.filter(r => r.state === 'INVITED');
+
+    if (!invRows.length) {
+      showToast('Нет приглашённых студентов', 'error');
+      return;
+    }
+
+    // Собираем институты
+    const instituteMap = {};
+    invRows.forEach(r => {
+      const { institute } = normalizeInstituteOp(r.institute, r.eduProg);
+      if (!instituteMap[institute]) instituteMap[institute] = [];
+      instituteMap[institute].push(r);
+    });
+
+    const institutes = Object.keys(instituteMap).sort((a, b) => a.localeCompare(b, 'ru'));
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Coursera Analytics';
+    wb.created = new Date();
+
+    // Лист 1: Сводка по институтам
+    const wsSummary = wb.addWorksheet('Сводка');
+    wsSummary.columns = [
+      { width: 6 }, { width: 42 }, { width: 20 }, { width: 20 }
+    ];
+
+    // Заголовок
+    wsSummary.mergeCells('A1:D1');
+    const titleCell = wsSummary.getCell('A1');
+    titleCell.value = `Студенты, не присоединившиеся к Coursera — по институтам (на ${dateStr})`;
+    titleCell.font = { bold: true, name: 'Times New Roman', size: 14, color: { argb: 'FF1F3864' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    titleCell.border = ALL_BORDERS;
+    wsSummary.getRow(1).height = 32;
+
+    // Шапка
+    ['№', 'Институт', 'Всего лицензий', 'Не присоединились'].forEach((t, i) => {
+      applyHdrCell(wsSummary.getRow(2).getCell(i + 1), t);
+    });
+    wsSummary.getRow(2).height = 36;
+
+    // Данные
+    institutes.forEach((inst_name, idx) => {
+      const totalInInst = allData.filter(r => (r.institute || '(Институт не указан)').trim() === inst_name).length;
+      const invInInst = instituteMap[inst_name].length;
+      const row = wsSummary.getRow(idx + 3);
+      row.height = 18;
+      applyDataCell(row.getCell(1), idx + 1, 'center');
+      applyDataCell(row.getCell(2), inst_name, 'left');
+      applyDataCell(row.getCell(3), totalInInst, 'right');
+      applyDataCell(row.getCell(4), invInInst, 'right');
+    });
+
+    // Итоговая строка
+    const totRow = wsSummary.getRow(institutes.length + 3);
+    totRow.height = 20;
+    const totalInvited = invRows.length;
+    applyDataCell(totRow.getCell(1), '', 'center');
+    const tc = totRow.getCell(2);
+    tc.value = 'ИТОГО';
+    tc.font = { bold: true, name: 'Times New Roman', size: 11 };
+    tc.alignment = { horizontal: 'left', vertical: 'middle' };
+    tc.border = ALL_BORDERS;
+    const tc3 = totRow.getCell(3);
+    tc3.value = allData.length;
+    tc3.font = { bold: true, name: 'Times New Roman', size: 11 };
+    tc3.alignment = { horizontal: 'right', vertical: 'middle' };
+    tc3.border = ALL_BORDERS;
+    const tc4 = totRow.getCell(4);
+    tc4.value = totalInvited;
+    tc4.font = { bold: true, name: 'Times New Roman', size: 11 };
+    tc4.alignment = { horizontal: 'right', vertical: 'middle' };
+    tc4.border = ALL_BORDERS;
+
+    // Лист для каждого института
+    institutes.forEach(inst_name => {
+      const rows = instituteMap[inst_name].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+
+      // Обрезаем название листа до 31 символа (ограничение Excel)
+      let sheetName = inst_name.replace(/[\/*?:[\]]/g, '').trim();
+      if (sheetName.length > 31) sheetName = sheetName.substring(0, 28) + '...';
+      if (!sheetName) sheetName = 'Без института';
+
+      const ws = wb.addWorksheet(sheetName);
+      ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 2 }];
+      ws.columns = [
+        { width: 6 }, { width: 38 }, { width: 34 },
+        { width: 36 }, { width: 20 }, { width: 20 }
+      ];
+
+      // Заголовок листа
+      ws.mergeCells('A1:F1');
+      const lTitle = ws.getCell('A1');
+      lTitle.value = `${inst_name} — не присоединились к Coursera (на ${dateStr})`;
+      lTitle.font = { bold: true, name: 'Times New Roman', size: 13, color: { argb: 'FF1F3864' } };
+      lTitle.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      lTitle.border = ALL_BORDERS;
+      ws.getRow(1).height = 28;
+
+      // Шапка
+      ['№', 'ФИО студента', 'Email', 'Образов. программа', 'Дата приглашения', 'Статус'].forEach((t, i) => {
+        applyHdrCell(ws.getRow(2).getCell(i + 1), t);
+      });
+      ws.getRow(2).height = 36;
+
+      // Строки студентов
+      rows.forEach((r, i) => {
+        const row = ws.getRow(i + 3);
+        row.height = 18;
+        applyDataCell(row.getCell(1), i + 1, 'center');
+        applyDataCell(row.getCell(2), r.name || '(не указано)', 'left');
+        applyDataCell(row.getCell(3), r.email || '', 'left');
+        applyDataCell(row.getCell(4), r.eduProg || '—', 'left');
+        applyDataCell(row.getCell(5), formatDatePlain(r.inviteDate) || '—', 'center');
+        applyDataCell(row.getCell(6), 'Не присоединился', 'center');
+      });
+    });
+
+    // Скачиваем
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = buildFilename('По институтам — не присоединились Coursera') + '.xlsx';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    showToast(`Выгружено ${institutes.length} институтов, ${invRows.length} студентов`, 'success');
+  } catch(err) {
+    showToast('Ошибка: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    btn.classList.remove('loading');
+    txt.textContent = 'Экспорт Excel';
+  }
+}
+
+
+// ═══ НОРМАЛИЗАЦИЯ НАЗВАНИЙ ИНСТИТУТОВ И ОП ══════════════════════
+// 7 официальных институтов КазАТУ
+const INST = {
+  AGRO: 'Институт сельского и лесного хозяйства',
+  ENG:  'Институт инжиниринга и пищевых технологий',
+  LAND: 'Институт земельных ресурсов и архитектуры',
+  VET:  'Институт науки о животных и ветеринарии',
+  ENRG: 'Институт энергетики',
+  BIZ:  'Институт бизнеса и цифровых технологий',
+  HUM:  'Гуманитарно-педагогический институт',
+};
+
+function normalizeInstituteOp(rawInstitute, rawEduProg) {
+  // Если институт указан явно — используем его, иначе определяем по ОП
+  const instRaw = (rawInstitute || '').trim();
+  const opRaw   = (rawEduProg   || '').trim();
+  const r   = instRaw || opRaw;
+  const low = r.toLowerCase().replace(/\s+/g,' ').trim();
+
+  if (!low || low === '—') return { institute: INST.ENG, op: null };
+
+  // ── 1. ГУМАНИТАРНО-ПЕДАГОГИЧЕСКИЙ ────────────────────────────
+  if (low.includes('гуманитар') || low.includes('педагог') || low.includes('гуманитарлық') ||
+      low.includes('философи') || low.includes('саясаттану') || low.includes('мәдениеттану') ||
+      low.includes('психологи') || low.includes('культуролог') || low.includes('политолог') ||
+      low.includes('социолог') || low.includes('дискретті математик')) {
+    return { institute: INST.HUM, op: opRaw || null };
+  }
+
+  // ── 2. АУЫЛ ЖӘНЕ ОРМАН — Сельское и лесное хозяйство ─────────
+  if (low.includes('ауыл') && low.includes('орман')) {
+    if (low.includes('ландшафт'))  return { institute: INST.AGRO, op: 'Ландшафтный дизайн' };
+    if (low.includes('өсімдік'))   return { institute: INST.AGRO, op: 'Өсімдік шаруашылығы (Растениеводство)' };
+    if (low.includes('орман шаруашылығы және қоршаған орта')) return { institute: INST.AGRO, op: 'Орман шаруашылығы және қоршаған орта' };
+    return { institute: INST.AGRO, op: opRaw || null };
+  }
+  if (low.includes('ауыл') && low.includes('шаруашылығ') && !low.includes('энерг') && !low.includes('жылу') && !low.includes('экоинженер')) {
+    return { institute: INST.AGRO, op: opRaw || null };
+  }
+  if (low.includes('орман шаруашылығы')) return { institute: INST.AGRO, op: 'Орман шаруашылығы және қоршаған орта' };
+  if (low.includes('өсімдік шаруашылығы') || low === 'растениеводство') return { institute: INST.AGRO, op: 'Өсімдік шаруашылығы (Растениеводство)' };
+  if (low.includes('агроном') || low.includes('агротехнолог') || low.includes('фитосанитар') || low.includes('почвовед')) return { institute: INST.AGRO, op: opRaw || null };
+  if (low.includes('лесн') || low.includes('лесовод') || low.includes('охотовед') || low.includes('аңшылықтану') || low.includes('аң шаруашылығ')) return { institute: INST.AGRO, op: opRaw || null };
+  if (low.includes('ландшафтный дизайн') || low.includes('ландшафты дизайн')) return { institute: INST.AGRO, op: 'Ландшафтный дизайн' };
+  if (low.includes('аквакультур') || low.includes('рыбн') || low.includes('рыбовод')) return { institute: INST.AGRO, op: 'Рыбное хозяйство' };
+  if (low.includes('животновод') || low.includes('зоотехн') || low.includes('птицевод')) return { institute: INST.AGRO, op: 'Животноводство' };
+  if (low.includes('окружающ') || low.includes('природопользован') || low.includes('қоршаған орта')) return { institute: INST.AGRO, op: opRaw || null };
+
+  // ── 3. ЭНЕРГЕТИКА ─────────────────────────────────────────────
+  if (low.includes('энергет') || low.includes('энерг тиімд') || low.includes('электроэнергет') ||
+      low.includes('электросет') || low.includes('электроснабж')) return { institute: INST.ENRG, op: opRaw || null };
+  if (low.includes('электротехн') || low.includes('электротехникалық')) return { institute: INST.ENRG, op: opRaw || null };
+  if (low.includes('теплоэнергет') || low.includes('жылу энергет') || low.includes('жылу') && low.includes('инженер')) return { institute: INST.ENRG, op: opRaw || null };
+  if ((low.includes('автоматиз') || low.includes('автоматтандыру')) && !low.includes('ауыл шаруашылығ')) return { institute: INST.ENRG, op: opRaw || null };
+  if (low.includes('процестер') && low.includes('автоматтандыру')) return { institute: INST.ENRG, op: opRaw || null };
+  if (low.includes('рэт') || low.includes('радиотехник') || low.includes('радиоэлектрон')) return { institute: INST.ENRG, op: opRaw || null };
+  // Энергообеспечение сельского хозяйства (автоматтандыру в АПК)
+  if (low.includes('ауыл шаруашылығын энергиямен') || (low.includes('ауыл шаруашылығ') && low.includes('автоматтандыру'))) return { institute: INST.ENG, op: 'Энергообеспечение сельского хозяйства' };
+  // Теплогаз/экоинженерия в АПК
+  if (low.includes('жылу газбен') || (low.includes('ауылшаруашылығ') && (low.includes('желдету') || low.includes('экоинженер')))) return { institute: INST.ENRG, op: opRaw || null };
+
+  // ── 4. ИЗРИА — Земельных ресурсов и архитектуры ──────────────
+  if (low.includes('изриа') || low.includes('жер ресурс') ||
+      low.includes('земельных ресурсов') || low.includes('управления земельными')) return { institute: INST.LAND, op: opRaw || null };
+  if (low.includes('архитектур') || low === 'архитектура (m122)') return { institute: INST.LAND, op: 'Архитектура' };
+  if (low.includes('геодез') || low.includes('геопростран') || low.includes('картограф')) return { institute: INST.LAND, op: opRaw || null };
+  if (low.includes('кадастр')) return { institute: INST.LAND, op: 'Кадастр' };
+  if (low.includes('землеустро') || low === 'землеустройство') return { institute: INST.LAND, op: 'Землеустройство' };
+  if (low.includes('факультет управления земельными')) return { institute: INST.LAND, op: opRaw || null };
+
+  // ── 5. НАУКИ О ЖИВОТНЫХ И ВЕТЕРИНАРИЯ ────────────────────────
+  if (low.includes('ветеринар')) return { institute: INST.VET, op: opRaw || null };
+  if (low.includes('жануарлар') || (low.includes('животных') && (low.includes('ветеринар') || low.includes('наука')))) return { institute: INST.VET, op: null };
+  if (low === 'наука о животных и ветеринария') return { institute: INST.VET, op: null };
+  if (low.includes('биотехнолог')) return { institute: INST.VET, op: opRaw || null };
+  if (low.includes('биолог')) return { institute: INST.VET, op: opRaw || null };
+  if (low.includes('пищевая безопасн') || low.includes('безопасность и качество пищев')) return { institute: INST.VET, op: opRaw || null };
+
+  // ── 6. БИЗНЕС И ЦИФРОВЫЕ ТЕХНОЛОГИИ ─────────────────────────
+  if (low.includes('бизнес') || low.includes('цифрлық технолог') || low.includes('цифровых технологий')) {
+    if (low.includes('/ис') || low.includes('информацион') || low.includes('программн')) return { institute: INST.BIZ, op: opRaw || null };
+    return { institute: INST.BIZ, op: opRaw || null };
+  }
+  if (low.includes('телекоммуникац') || low.includes('телекоммуникациялық')) return { institute: INST.BIZ, op: opRaw || null };
+  if (low.includes('информацион') || low.includes('программн') || low.includes('компьютерн') ||
+      low.includes('it') || low.includes('девопс') || low.includes('цифров')) return { institute: INST.BIZ, op: opRaw || null };
+  if (low.includes('финанс') || low.includes('экономик') || low.includes('бухгалтер') ||
+      low.includes('аудит') || low.includes('маркетинг') || low.includes('менеджмент') ||
+      low.includes('предпринимател') || low.includes('управление бизнес') ||
+      low.includes('digital') || low.includes('дискретті') ) return { institute: INST.BIZ, op: opRaw || null };
+  if (low.includes('бизнес-информатик') || low.includes('бизнес информатик')) return { institute: INST.BIZ, op: opRaw || null };
+
+  // ── 7. ИНЖИНИРИНГ И ПИЩЕВЫЕ ТЕХНОЛОГИИ ──────────────────────
+  if (low.includes('азық-түлік') || low.includes('тамақ өнімдері') || low.includes('технология пищев') || low.includes('пищев')) return { institute: INST.ENG, op: opRaw || null };
+  if (low.includes('агроинженер')) return { institute: INST.ENG, op: 'Агроинженерия' };
+  if (low.includes('механик') || low.includes('металлообработ')) return { institute: INST.ENG, op: opRaw || null };
+  if (low.includes('стандарт') || low.includes('сертификат') || low.includes('метролог')) return { institute: INST.ENG, op: opRaw || null };
+  if (low.includes('логистика') || low.includes('транспортн') || (low.includes('транспорт') && low.includes('технолог'))) return { institute: INST.ENG, op: opRaw || null };
+  if (low.includes('транспортная техника')) return { institute: INST.ENG, op: opRaw || null };
+
+  // ── Финальный fallback ────────────────────────────────────────
+  return { institute: INST.ENG, op: opRaw || r };
+}
+
+// ═══ СВОДНЫЙ ОТЧЁТ ПО ИНСТИТУТАМ (1 лист, с разбивкой по ОП) ════
+async function exportInstituteReport(dateStr, inst) {
+  const btn = document.getElementById('exportMainBtn');
+  const txt = document.getElementById('exportBtnText');
+  btn.classList.add('loading');
+  txt.innerHTML = '<span class="spinner"></span> Генерация...';
+
+  try {
+    const invRows = allData.filter(r => r.state === 'INVITED');
+    if (!invRows.length) { showToast('Нет приглашённых студентов', 'error'); return; }
+
+    const groups = {};
+    invRows.forEach(r => {
+      const norm = normalizeInstituteOp(r.institute, r.eduProg);
+      const institute = norm.institute, op = norm.op;
+      if (!groups[institute]) groups[institute] = { total: 0, ops: {} };
+      groups[institute].total++;
+      if (op) groups[institute].ops[op] = (groups[institute].ops[op] || 0) + 1;
+    });
+
+    const instNames = Object.keys(groups).sort((a, b) => {
+      if (a === '(не указан)') return 1;
+      if (b === '(не указан)') return -1;
+      return groups[b].total - groups[a].total;
+    });
+
+    const knownCounts = instNames.filter(n => n !== '(не указан)').map(n => groups[n].total);
+    const maxCount = knownCounts.length ? Math.max(...knownCounts) : 1;
+    const colorFor = (count) => {
+      const ratio = count / maxCount;
+      if (ratio >= 0.66) return 'FFE6C7C7';
+      if (ratio >= 0.33) return 'FFEFE3C2';
+      return 'FFCFE0D4';
+    };
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Coursera Analytics';
+    wb.created = new Date();
+    const ws = wb.addWorksheet('Отчёт по институтам');
+    ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 3 }];
+    ws.columns = [{ width: 6 }, { width: 55 }, { width: 22 }, { width: 14 }];
+
+    ws.mergeCells('A1:D1');
+    const title = ws.getCell('A1');
+    title.value = `Сводный отчёт — студенты, не присоединившиеся к Coursera, по институтам (на ${dateStr})`;
+    title.font = { bold: true, name: 'Times New Roman', size: 14, color: { argb: 'FF1F3864' } };
+    title.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    title.border = ALL_BORDERS;
+    ws.getRow(1).height = 34;
+
+    ws.mergeCells('A2:D2');
+    const legend = ws.getCell('A2');
+    legend.value = 'Цветовая индикация институтов отражает уровень показателя относительно максимального значения по выборке: высокий (от 66%), средний (33\u201366%), низкий (менее 33%)';
+    legend.font = { italic: true, name: 'Times New Roman', size: 10, color: { argb: 'FF666666' } };
+    legend.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 22;
+
+    ['№', 'Институт / Образовательная программа', 'Кол-во не присоединились', '% от общего'].forEach((t, i) => {
+      applyHdrCell(ws.getRow(3).getCell(i + 1), t);
+    });
+    ws.getRow(3).height = 40;
+
+    let rowIdx = 4;
+    const grandTotal = invRows.length;
+
+    instNames.forEach((instName, idx) => {
+      const g = groups[instName];
+      const isUnknown = instName === '(не указан)';
+      const fillColor = isUnknown ? 'FFE8E8E8' : colorFor(g.total);
+
+      const row = ws.getRow(rowIdx++);
+      row.height = 22;
+      const c1 = row.getCell(1); c1.value = idx + 1; c1.alignment = { horizontal: 'center', vertical: 'middle' }; c1.border = ALL_BORDERS; c1.font = { bold: true, name: 'Times New Roman', size: 11 };
+      const c2 = row.getCell(2); c2.value = instName; c2.alignment = { horizontal: 'left', vertical: 'middle' }; c2.border = ALL_BORDERS; c2.font = { bold: true, name: 'Times New Roman', size: 11 };
+      const c3 = row.getCell(3); c3.value = g.total; c3.alignment = { horizontal: 'right', vertical: 'middle' }; c3.border = ALL_BORDERS; c3.font = { bold: true, name: 'Times New Roman', size: 11 };
+      const c4 = row.getCell(4); c4.value = Math.round(g.total / grandTotal * 100) + '%'; c4.alignment = { horizontal: 'right', vertical: 'middle' }; c4.border = ALL_BORDERS; c4.font = { bold: true, name: 'Times New Roman', size: 11 };
+      [c1, c2, c3, c4].forEach(c => c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } });
+
+      const opNames = Object.keys(g.ops).sort((a, b) => g.ops[b] - g.ops[a]);
+      opNames.forEach(opName => {
+        const opRow = ws.getRow(rowIdx++);
+        opRow.height = 18;
+        const o1 = opRow.getCell(1); o1.value = ''; o1.border = ALL_BORDERS;
+        const o2 = opRow.getCell(2); o2.value = '    ' + opName; o2.alignment = { horizontal: 'left', vertical: 'middle' }; o2.border = ALL_BORDERS; o2.font = { name: 'Times New Roman', size: 10.5, color: { argb: 'FF555555' } };
+        const o3 = opRow.getCell(3); o3.value = g.ops[opName]; o3.alignment = { horizontal: 'right', vertical: 'middle' }; o3.border = ALL_BORDERS; o3.font = { name: 'Times New Roman', size: 10.5, color: { argb: 'FF555555' } };
+        const o4 = opRow.getCell(4); o4.value = ''; o4.border = ALL_BORDERS;
+      });
+    });
+
+    const totalRow = ws.getRow(rowIdx);
+    totalRow.height = 22;
+    const t1 = totalRow.getCell(1); t1.value = ''; t1.border = ALL_BORDERS;
+    const t2 = totalRow.getCell(2); t2.value = 'ИТОГО — не присоединились'; t2.font = { bold: true, name: 'Times New Roman', size: 11.5 }; t2.alignment = { horizontal: 'left', vertical: 'middle' }; t2.border = ALL_BORDERS;
+    const t3 = totalRow.getCell(3); t3.value = grandTotal; t3.font = { bold: true, name: 'Times New Roman', size: 11.5 }; t3.alignment = { horizontal: 'right', vertical: 'middle' }; t3.border = ALL_BORDERS;
+    const t4 = totalRow.getCell(4); t4.value = '100%'; t4.font = { bold: true, name: 'Times New Roman', size: 11.5 }; t4.alignment = { horizontal: 'right', vertical: 'middle' }; t4.border = ALL_BORDERS;
+    [t1, t2, t3, t4].forEach(c => c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6DCE5' } });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = buildFilename('Сводный отчёт по институтам Coursera') + '.xlsx';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    showToast(`Отчёт выгружен: ${instNames.length} институтов, ${grandTotal} студентов`, 'success');
+  } catch (err) {
+    showToast('Ошибка: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    btn.classList.remove('loading');
+    txt.textContent = 'Экспорт Excel';
+  }
+}
+
+
+// ═══ ПОЛНЫЙ ОТЧЁТ ПО ИНСТИТУТАМ (сводка + лист на каждый институт) ═══
+async function exportInstituteFull(dateStr, inst) {
+  const btn = document.getElementById('exportMainBtn');
+  const txt = document.getElementById('exportBtnText');
+  btn.classList.add('loading');
+  txt.innerHTML = '<span class="spinner"></span> Генерация...';
+
+  try {
+    const invRows = allData.filter(r => r.state === 'INVITED');
+    if (!invRows.length) { showToast('Нет приглашённых студентов', 'error'); return; }
+
+    // Группируем по нормализованным институтам
+    const groups = {};      // institute -> { total, ops: {opName: count}, rows: [] }
+    invRows.forEach(r => {
+      const norm = normalizeInstituteOp(r.institute, r.eduProg);
+      const institute = norm.institute, op = norm.op;
+      if (!groups[institute]) groups[institute] = { total: 0, ops: {}, rows: [] };
+      groups[institute].total++;
+      groups[institute].rows.push(r);
+      if (op) groups[institute].ops[op] = (groups[institute].ops[op] || 0) + 1;
+    });
+
+    const instNames = Object.keys(groups).sort((a, b) => {
+      if (a === '(не указан)') return 1;
+      if (b === '(не указан)') return -1;
+      return groups[b].total - groups[a].total;
+    });
+
+    const knownCounts = instNames.filter(n => n !== '(не указан)').map(n => groups[n].total);
+    const maxCount = knownCounts.length ? Math.max(...knownCounts) : 1;
+    const colorFor = (count) => {
+      const ratio = count / maxCount;
+      if (ratio >= 0.66) return 'FFE6C7C7';
+      if (ratio >= 0.33) return 'FFEFE3C2';
+      return 'FFCFE0D4';
+    };
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Coursera Analytics';
+    wb.created = new Date();
+
+    // ── ЛИСТ 1: СВОДКА ────────────────────────────────────────
+    const ws = wb.addWorksheet('Сводка по институтам');
+    ws.views = [{ state: 'frozen', xSplit: 0, ySplit: 3 }];
+    ws.columns = [{ width: 6 }, { width: 55 }, { width: 22 }, { width: 14 }];
+
+    ws.mergeCells('A1:D1');
+    const title = ws.getCell('A1');
+    title.value = `Сводный отчёт — студенты, не присоединившиеся к Coursera, по институтам (на ${dateStr})`;
+    title.font = { bold: true, name: 'Times New Roman', size: 14, color: { argb: 'FF1F3864' } };
+    title.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    title.border = ALL_BORDERS;
+    ws.getRow(1).height = 34;
+
+    ws.mergeCells('A2:D2');
+    const legend = ws.getCell('A2');
+    legend.value = 'Цветовая индикация институтов отражает уровень показателя относительно максимального значения по выборке: высокий (от 66%), средний (33\u201366%), низкий (менее 33%)';
+    legend.font = { italic: true, name: 'Times New Roman', size: 10, color: { argb: 'FF666666' } };
+    legend.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 22;
+
+    ['№', 'Институт / Образовательная программа', 'Кол-во не присоединились', '% от общего'].forEach((t, i) => {
+      applyHdrCell(ws.getRow(3).getCell(i + 1), t);
+    });
+    ws.getRow(3).height = 40;
+
+    let rowIdx = 4;
+    const grandTotal = invRows.length;
+    const sheetNameMap = {}; // institute -> sheet name (for hyperlinks)
+
+    instNames.forEach((instName, idx) => {
+      const g = groups[instName];
+      const isUnknown = instName === '(не указан)';
+      const fillColor = isUnknown ? 'FFE8E8E8' : colorFor(g.total);
+
+      // Generate sheet name for this institute
+      let sheetName = instName.replace(/[\/*?:[\]]/g, '').trim();
+      if (sheetName.length > 31) sheetName = sheetName.substring(0, 28) + '...';
+      if (!sheetName) sheetName = 'Без института';
+      sheetNameMap[instName] = sheetName;
+
+      const row = ws.getRow(rowIdx++);
+      row.height = 22;
+      const c1 = row.getCell(1); c1.value = idx + 1; c1.alignment = { horizontal: 'center', vertical: 'middle' }; c1.border = ALL_BORDERS; c1.font = { bold: true, name: 'Times New Roman', size: 11 };
+      const c2 = row.getCell(2);
+      c2.value = { text: instName, hyperlink: `#'${sheetName}'!A1`, tooltip: 'Перейти к списку студентов' };
+      c2.font = { bold: true, name: 'Times New Roman', size: 11, underline: true, color: { argb: 'FF1F3864' } };
+      c2.alignment = { horizontal: 'left', vertical: 'middle' }; c2.border = ALL_BORDERS;
+      const c3 = row.getCell(3); c3.value = g.total; c3.alignment = { horizontal: 'right', vertical: 'middle' }; c3.border = ALL_BORDERS; c3.font = { bold: true, name: 'Times New Roman', size: 11 };
+      const c4 = row.getCell(4); c4.value = Math.round(g.total / grandTotal * 100) + '%'; c4.alignment = { horizontal: 'right', vertical: 'middle' }; c4.border = ALL_BORDERS; c4.font = { bold: true, name: 'Times New Roman', size: 11 };
+      [c1, c3, c4].forEach(c => c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } });
+      c2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
+
+      const opNames = Object.keys(g.ops).sort((a, b) => g.ops[b] - g.ops[a]);
+      opNames.forEach(opName => {
+        const opRow = ws.getRow(rowIdx++);
+        opRow.height = 18;
+        const o1 = opRow.getCell(1); o1.value = ''; o1.border = ALL_BORDERS;
+        const o2 = opRow.getCell(2); o2.value = '    ' + opName; o2.alignment = { horizontal: 'left', vertical: 'middle' }; o2.border = ALL_BORDERS; o2.font = { name: 'Times New Roman', size: 10.5, color: { argb: 'FF555555' } };
+        const o3 = opRow.getCell(3); o3.value = g.ops[opName]; o3.alignment = { horizontal: 'right', vertical: 'middle' }; o3.border = ALL_BORDERS; o3.font = { name: 'Times New Roman', size: 10.5, color: { argb: 'FF555555' } };
+        const o4 = opRow.getCell(4); o4.value = ''; o4.border = ALL_BORDERS;
+      });
+    });
+
+    const totalRow = ws.getRow(rowIdx);
+    totalRow.height = 22;
+    const t1 = totalRow.getCell(1); t1.value = ''; t1.border = ALL_BORDERS;
+    const t2 = totalRow.getCell(2); t2.value = 'ИТОГО — не присоединились'; t2.font = { bold: true, name: 'Times New Roman', size: 11.5 }; t2.alignment = { horizontal: 'left', vertical: 'middle' }; t2.border = ALL_BORDERS;
+    const t3 = totalRow.getCell(3); t3.value = grandTotal; t3.font = { bold: true, name: 'Times New Roman', size: 11.5 }; t3.alignment = { horizontal: 'right', vertical: 'middle' }; t3.border = ALL_BORDERS;
+    const t4 = totalRow.getCell(4); t4.value = '100%'; t4.font = { bold: true, name: 'Times New Roman', size: 11.5 }; t4.alignment = { horizontal: 'right', vertical: 'middle' }; t4.border = ALL_BORDERS;
+    [t1, t2, t3, t4].forEach(c => c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6DCE5' } });
+
+    // ── ЛИСТЫ: ПО КАЖДОМУ ИНСТИТУТУ ──────────────────────────
+    instNames.forEach(instName => {
+      const g = groups[instName];
+      const rows = [...g.rows].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+      const sheetName = sheetNameMap[instName];
+
+      const wsDet = wb.addWorksheet(sheetName);
+      wsDet.views = [{ state: 'frozen', xSplit: 0, ySplit: 2 }];
+      wsDet.columns = [{ width: 6 }, { width: 38 }, { width: 34 }, { width: 36 }, { width: 20 }, { width: 20 }];
+
+      wsDet.mergeCells('A1:F1');
+      const lTitle = wsDet.getCell('A1');
+      lTitle.value = `${instName} — не присоединились к Coursera (на ${dateStr})`;
+      lTitle.font = { bold: true, name: 'Times New Roman', size: 13, color: { argb: 'FF1F3864' } };
+      lTitle.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      lTitle.border = ALL_BORDERS;
+      wsDet.getRow(1).height = 28;
+
+      ['№', 'ФИО студента', 'Email', 'Образов. программа (исходная)', 'Дата приглашения', 'Статус'].forEach((t, i) => {
+        applyHdrCell(wsDet.getRow(2).getCell(i + 1), t);
+      });
+      wsDet.getRow(2).height = 36;
+
+      rows.forEach((r, i) => {
+        const row = wsDet.getRow(i + 3);
+        row.height = 18;
+        applyDataCell(row.getCell(1), i + 1, 'center');
+        applyDataCell(row.getCell(2), r.name || '(не указано)', 'left');
+        applyDataCell(row.getCell(3), r.email || '', 'left');
+        applyDataCell(row.getCell(4), r.eduProg || '—', 'left');
+        applyDataCell(row.getCell(5), formatDatePlain(r.inviteDate) || '—', 'center');
+        applyDataCell(row.getCell(6), 'Не присоединился', 'center');
+      });
+    });
+
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = buildFilename('Полный отчёт по институтам Coursera') + '.xlsx';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    showToast(`Отчёт выгружен: ${instNames.length} институтов, ${grandTotal} студентов`, 'success');
+  } catch (err) {
+    showToast('Ошибка: ' + err.message, 'error');
+    console.error(err);
+  } finally {
+    btn.classList.remove('loading');
+    txt.textContent = 'Экспорт Excel';
+  }
+}
+
+</script>
+</body>
+</html>
